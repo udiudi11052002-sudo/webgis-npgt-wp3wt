@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web GIS Neraca Penatagunaan Tanah (KMZ Version)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        /* Custom scrollbar untuk panel kiri agar estetik */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        #map { height: calc(100vh - 70px); }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans overflow-hidden">
+
+    <header class="bg-gray-800 border-b border-gray-700 h-[70px] flex items-center justify-between px-6 shadow-lg z-50 relative">
+        <div class="flex items-center space-x-4">
+            <img src="logo-bpn.png" alt="Logo ATR/BPN" class="h-12 w-auto object-contain" onerror="this.src='https://via.placeholder.com/50?text=BPN'">
+            <div>
+                <h1 class="text-lg font-bold tracking-wide text-emerald-400">RAPAT INTEGRASI NPT</h1>
+                <p class="text-xs text-gray-400">Neraca Penatagunaan Tanah Kecamatan/WP3WT</p>
+            </div>
+        </div>
+        <div class="text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
+            Sistem Informasi Geografis v1.0 (KMZ Engine)
+        </div>
+    </header>
+
+    <div class="flex h-[calc(100vh-70px)] w-full">
+        
+        <aside class="w-80 bg-gray-800/95 border-r border-gray-700 flex flex-col justify-between z-40 shadow-2xl">
+            <div class="p-5 overflow-y-auto flex-1">
+                <div class="mb-5">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                        <span>🌍</span> LAPISAN DATA SPASIAL
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-1">Aktifkan atau nonaktifkan layer di bawah ini:</p>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <span class="text-sm font-medium">Penggunaan Tanah</span>
+                        <input type="checkbox" id="layer1" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 focus:ring-emerald-500">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <span class="text-sm font-medium">Ketersediaan Tanah</span>
+                        <input type="checkbox" id="layer2" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 focus:ring-emerald-500">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <span class="text-sm font-medium">Kesesuaian Terhadap RTRW</span>
+                        <input type="checkbox" id="layer3" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 focus:ring-emerald-500">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <span class="text-sm font-medium">Tekstur Tanah</span>
+                        <input type="checkbox" id="layer4" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 focus:ring-emerald-500">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <span class="text-sm font-medium">Kedalaman Efektif</span>
+                        <input type="checkbox" id="layer5" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 focus:ring-emerald-500">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <span class="text-sm font-medium">Tingkat Erosi</span>
+                        <input type="checkbox" id="layer6" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 focus:ring-emerald-500">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl cursor-pointer transition">
+                        <span class="text-sm font-medium">Tingkat Drainase</span>
+                        <input type="checkbox" id="layer7" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 focus:ring-emerald-500">
+                    </label>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-950 border-t border-gray-700 text-center text-xs text-gray-500">
+                BPN © 2026 Kab. Pohuwato / Gorontalo
+            </div>
+        </aside>
+
+        <main id="map" class="flex-1 z-10"></main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
+
+    <script>
+        // 1. Inisialisasi Peta (Koordinat default Gorontalo/Pohuwato)
+        const map = L.map('map').setView([0.5435, 121.9324], 10);
+
+        // 2. Pilihan Base Map
+        const basemaps = {
+            Satelit: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri'
+            }),
+            PetaJalan: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', {
+                attribution: '&copy; OpenStreetMap'
+            })
+        };
+        basemaps.Satelit.addTo(map);
+        L.control.layers(basemaps, null, { position: 'bottomright' }).addTo(map);
+
+        // 3. Fungsi membuat Pop-up dari data KMZ/KML
+        function customPopup(feature, layer) {
+            if (feature.properties) {
+                let popupContent = "<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ Informasi Atribut</h3><table class='text-xs w-full'>";
+                
+                if(feature.properties.name) {
+                    popupContent += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>Nama</td><td class='text-gray-800'>: ${feature.properties.name}</td></tr>`;
+                }
+                if(feature.properties.description) {
+                    popupContent += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>Keterangan</td><td class='text-gray-800'>: ${feature.properties.description}</td></tr>`;
+                }
+
+                // Melacak field dinamis bawaan KMZ lainnya
+                for (let key in feature.properties) {
+                    if(!['name', 'description', 'styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility'].includes(key)) {
+                        popupContent += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${key}</td><td class='text-gray-800'>: ${feature.properties[key]}</td></tr>`;
+                    }
+                }
+                
+                popupContent += "</table></div>";
+                layer.bindPopup(popupContent);
+            }
+        }
+
+        // 4. Wadah Penampung Layer Aktif
+        const loadedLayers = {};
+
+        // 5. Fungsi Mengambil, Mengekstrak KMZ, dan Memasukkannya ke Peta
+        async function muatKmz(idLayer, urlFile) {
+            try {
+                // Fetch file KMZ dalam bentuk binary blob
+                const response = await fetch(urlFile);
+                const blob = await response.blob();
+                
+                // Gunakan JSZip untuk mengekstrak isi KMZ di memori browser
+                const zip = await JSZip.loadAsync(blob);
+                
+                // Cari file .kml di dalam struktur zip kmz
+                const kmlFile = Object.keys(zip.files).find(name => name.endsWith('.kml'));
+                if (!kmlFile) throw new Error("File KML tidak ditemukan di dalam paket KMZ.");
+                
+                // Ekstrak file KML-nya menjadi string teks teks xml
+                const kmlText = await zip.files[kmlFile].async("string");
+                
+                // Parsing string KML menggunakan DOMParser agar bisa dibaca Omnivore
+                const parser = new DOMParser();
+                const kmlDoc = parser.parseFromString(kmlText, "text/xml");
+                
+                // Masukkan data ke omnivore dan gunakan skema pop-up kustom
+                const layerGeospasial = omnivore.kml.parse(kmlDoc, null, L.geoJson(null, {
+                    onEachFeature: customPopup
+                }));
+
+                loadedLayers[idLayer] = layerGeospasial;
+
+                // Daftarkan aksi klik pada switch di panel kiri
+                document.getElementById(idLayer).addEventListener('change', function (e) {
+                    if (e.target.checked) {
+                        loadedLayers[idLayer].addTo(map);
+                        // Auto-zoom mengarah ke lokasi data poligon
+                        map.fitBounds(loadedLayers[idLayer].getBounds());
+                    } else {
+                        map.removeLayer(loadedLayers[idLayer]);
+                    }
+                });
+
+            } catch (error) {
+                console.error(`Gagal memproses file KMZ (${urlFile}):`, error);
+            }
+        }
+
+        // 6. Daftarkan File KMZ Anda Sesuai Folder 'data/'
+        muatKmz('layer1', 'data/penggunaan_tanah.kmz');
+        muatKmz('layer2', 'data/ketersediaan_tanah.kmz');
+        muatKmz('layer3', 'data/kesesuaian_rtrw.kmz');
+        muatKmz('layer4', 'data/tekstur_tanah.kmz');
+        muatKmz('layer5', 'data/kedalaman_efektif.kmz');
+        muatKmz('layer6', 'data/tingkat_erosi.kmz');
+        muatKmz('layer7', 'data/tingkat_drainase.kmz');
+
+    </script>
+</body>
+</html>
