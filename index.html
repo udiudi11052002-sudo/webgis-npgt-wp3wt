@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (NPGT Fix Legend)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (NPT Legend Fixed)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -27,7 +27,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v1.4 (Full Layer Style Forced)
+            Sistem Informasi Geografis v1.5 (Forced Style Engine)
         </div>
     </header>
 
@@ -44,7 +44,7 @@
                     <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
                         <span>🌍</span> LAPISAN DATA SPASIAL
                     </h2>
-                    <p class="text-xs text-gray-500 mt-1">Aktifkan layer untuk menampilkan peta sesuai tata warna legenda:</p>
+                    <p class="text-xs text-gray-500 mt-1">Aktifkan layer untuk menyelaraskan warna peta dan legenda:</p>
                 </div>
 
                 <div class="space-y-2.5">
@@ -107,7 +107,7 @@
     <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
 
     <script>
-        // --- UI SIDEBAR INTERACTION ---
+        // --- LOGIKA TAMPILAN SIDEBAR ---
         const menuBtn = document.getElementById('menuBtn');
         const sidebar = document.getElementById('sidebar');
         const menuIcon = document.getElementById('menuIcon');
@@ -128,34 +128,34 @@
             }
         });
 
-        // --- MAP INITIALIZATION ---
+        // --- DEKLARASI PETA LEAFLET ---
         const map = L.map('map', { zoomControl: false }).setView([0.5435, 121.9324], 11);
         L.control.zoom({ position: 'topright' }).addTo(map);
 
         const basemaps = {
-            Satelit: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }),
-            PetaJalan: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { attribution: 'OSM' })
+            Satelit: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri Satellites' }),
+            PetaJalan: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { attribution: 'OpenStreetMap' })
         };
         basemaps.Satelit.addTo(map);
         L.control.layers(basemaps, null, { position: 'bottomright' }).addTo(map);
 
-        // --- MASTER COLOR SCHEME (MATCHING DATA QGIS) ---
+        // --- STRUKTUR WARNA STANDAR QGIS ---
         const skemaWarna = {
             tekstur: {
-                'halus': '#2ca02c',       // Hijau
-                'sedang': '#98df8a',      // Hijau Muda
-                'agak kasar': '#ff7f0e',  // Orange
-                'kasar': '#d62728'        // Merah
+                'halus': '#2ca02c',       
+                'sedang': '#98df8a',      
+                'agak kasar': '#ff7f0e',  
+                'kasar': '#d62728'        
             },
             erosi: {
-                'tidak ada erosi': '#2ca02c',
-                'erosi ringan': '#ffff00',
-                'erosi sangat berat': '#d62728'
+                'tidak ada erosi': '#2ca02c', 
+                'erosi ringan': '#ffff00',    
+                'erosi sangat berat': '#d62728' 
             },
             drainase: {
-                'tidak pernah tergenang': '#006400', // Hijau Tua
-                'tergenang periodik': '#ffff00',     // Kuning
-                'tergenang terus menerus': '#d62728' // Merah
+                'tidak pernah tergenang': '#006400', 
+                'tergenang periodik': '#ffff00',     
+                'tergenang terus menerus': '#d62728' 
             },
             kedalaman: {
                 '30-50 cm': '#d62728',
@@ -176,57 +176,56 @@
             }
         };
 
-        // --- LOGIKA FILTER PEWARNAAN BERDASARKAN PROPERTIES / FIELD ---
+        // --- ENGINE FILTER EVALUASI NILAI ATRIBUT FIELD ---
         function tentukanWarnaLayer(properties, idLayer) {
+            // Melakukan pengecekan string dari nama fitur maupun teks deskripsi internal bawaan KMZ
             const nameVal = (properties.name || "").toLowerCase().trim();
             const descVal = (properties.description || "").toLowerCase().trim();
             
-            // Membaca isi string jika data di-eksport langsung dari field tabel QGIS
             const txt = (properties.TEKSTUR || "").toLowerCase().trim();
             const ers = (properties.EROSI || "").toLowerCase().trim();
             const drn = (properties.DRAINS || "").toLowerCase().trim();
             const kdf = (properties.KDEFEK || "").toLowerCase().trim();
 
-            if (idLayer === 'layer4') { // Tekstur Tanah
+            if (idLayer === 'layer4') { 
                 if (nameVal.includes('halus') || txt.includes('halus') || descVal.includes('halus')) return skemaWarna.tekstur['halus'];
                 if (nameVal.includes('sedang') || txt.includes('sedang') || descVal.includes('sedang')) return skemaWarna.tekstur['sedang'];
                 if (nameVal.includes('agak kasar') || txt.includes('agak kasar') || descVal.includes('agak kasar')) return skemaWarna.tekstur['agak kasar'];
                 if (nameVal.includes('kasar') || txt.includes('kasar') || descVal.includes('kasar')) return skemaWarna.tekstur['kasar'];
             }
-            if (idLayer === 'layer6') { // Tingkat Erosi
+            if (idLayer === 'layer6') { 
                 if (nameVal.includes('tidak ada') || ers.includes('tidak') || descVal.includes('tidak ada')) return skemaWarna.erosi['tidak ada erosi'];
                 if (nameVal.includes('ringan') || ers.includes('ringan') || descVal.includes('ringan')) return skemaWarna.erosi['erosi ringan'];
-                if (nameVal.includes('sangat berat') || ers.includes('berat') || descVal.includes('berat')) return skemaWarna.erosi['erosi sangat berat'];
+                if (nameVal.includes('sangat berat') || ers.includes('berat') || descVal.includes('sangat berat')) return skemaWarna.erosi['erosi sangat berat'];
             }
-            if (idLayer === 'layer7') { // Tingkat Drainase
+            if (idLayer === 'layer7') { 
                 if (nameVal.includes('tidak pernah') || drn.includes('tidak') || descVal.includes('tidak pernah')) return skemaWarna.drainase['tidak pernah tergenang'];
                 if (nameVal.includes('periodik') || drn.includes('periodik') || descVal.includes('periodik')) return skemaWarna.drainase['tergenang periodik'];
                 if (nameVal.includes('terus menerus') || drn.includes('terus') || descVal.includes('terus menerus')) return skemaWarna.drainase['tergenang terus menerus'];
             }
-            if (idLayer === 'layer5') { // Kedalaman Efektif
+            if (idLayer === 'layer5') { 
                 for (let key in skemaWarna.kedalaman) {
                     if (nameVal.includes(key) || kdf.includes(key) || descVal.includes(key)) return skemaWarna.kedalaman[key];
                 }
             }
-            if (idLayer === 'layer2') { // Ketersediaan Tanah
+            if (idLayer === 'layer2') {
                 if (nameVal.includes('tidak') || descVal.includes('tidak')) return skemaWarna.ketersediaan['tidak tersedia'];
                 if (nameVal.includes('terbatas') || descVal.includes('terbatas')) return skemaWarna.ketersediaan['terbatas'];
                 return skemaWarna.ketersediaan['tersedia'];
             }
-            if (idLayer === 'layer3') { // Kesesuaian RTRW
+            if (idLayer === 'layer3') {
                 if (nameVal.includes('tidak') || descVal.includes('tidak')) return skemaWarna.kesesuaian['tidak sesuai'];
                 if (nameVal.includes('bersyarat') || descVal.includes('bersyarat')) return skemaWarna.kesesuaian['sesuai bersyarat'];
                 return skemaWarna.kesesuaian['sesuai'];
             }
             
-            // Fallback default Penggunaan Tanah
             for (let key in skemaWarna.penggunaan) {
                 if (nameVal.includes(key) || descVal.includes(key)) return skemaWarna.penggunaan[key];
             }
             return '#10b981'; 
         }
 
-        // --- UPDATE TAMPILAN BOX LEGENDA KIRI ---
+        // --- UPDATE PANEL BOX LEGENDA ---
         const activeLayersForLegend = {};
         function perbaruiHtmlLegenda() {
             const container = document.getElementById('dynamicLegend');
@@ -260,10 +259,13 @@
                     container.innerHTML += htmlGrup;
                 }
             }
-            if (!adaLayerAktif) container.innerHTML = '<p class="text-gray-500 italic">Silakan aktifkan layer untuk melihat legenda tata warna.</p>';
+            
+            if (!adaLayerAktif) {
+                container.innerHTML = '<p class="text-gray-500 italic">Silakan aktifkan layer untuk melihat legenda tata warna.</p>';
+            }
         }
 
-        // --- CLEAN ATTRIBUTE POPUP ---
+        // --- BERSIHKAN TABEL POPUP ATRIBUT ---
         function customPopup(feature, layer) {
             if (feature.properties) {
                 let content = "<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ Informasi Atribut</h3><table class='text-xs w-full'>";
@@ -278,24 +280,26 @@
             }
         }
 
-        // --- FORCED STYLE ENGINE (MEMAKSA WARNA KML/KMZ BERUBAH TOTAL) ---
-        function aplikasikanWarnaForced(layerGroup, idLayer) {
+        // --- FUNGSI UTAMA RECURSIVE OVERRIDE WARNA POLIGON ---
+        function paksaWarnaPoligon(layerGroup, idLayer) {
             layerGroup.eachLayer(function(subLayer) {
-                // Omnivore mengurai objek ke dalam struktur bersarang, kita sisir semua poligon internal
+                // Menimpa total setStyle bawaan berkas KMZ
                 if (typeof subLayer.setStyle === 'function') {
                     subLayer.setStyle({
                         fillColor: tentukanWarnaLayer(subLayer.feature.properties, idLayer),
                         color: '#ffffff',
                         weight: 1.2,
-                        fillOpacity: 0.7
+                        fillOpacity: 0.75
                     });
-                } else if (typeof subLayer.eachLayer === 'function') {
-                    aplikasikanWarnaForced(subLayer, idLayer);
+                } 
+                // Jika objek berupa kumpulan layer bersarang (MultiPolygon), telusuri ulang bagian dalamnya
+                if (typeof subLayer.eachLayer === 'function') {
+                    paksaWarnaPoligon(subLayer, idLayer);
                 }
             });
         }
 
-        // --- LOAD KMZ UTAMA ---
+        // --- MEMBACA DAN MEMPROSES BERKAS KMZ ---
         const loadedLayers = {};
         async function muatKmz(idLayer, urlFile) {
             try {
@@ -310,33 +314,34 @@
                 const parser = new DOMParser();
                 const kmlDoc = parser.parseFromString(kmlText, "text/xml");
                 
-                // Load data mentah tanpa dipengaruhi style default eksternal bawaan file
+                // Set parameter GeoJSON kosong untuk dimanipulasi manual
                 const layerGeospasial = omnivore.kml.parse(kmlDoc, null, L.geoJson(null, {
                     onEachFeature: customPopup
                 }));
 
-                // Event listener ketika omnivore selesai menerjemahkan seluruh struktur KML
+                // Eksekusi fungsi penimpaan warna saat library omnivore selesai menerjemahkan KML
                 layerGeospasial.on('ready', function() {
-                    aplikasikanWarnaForced(layerGeospasial, idLayer);
+                    paksaWarnaPoligon(layerGeospasial, idLayer);
                 });
 
                 loadedLayers[idLayer] = layerGeospasial;
 
-                // Kontrol interaksi checkbox
+                // Event listener checkbox kontrol lapisan data spasial
                 document.getElementById(idLayer).addEventListener('change', function (e) {
                     if (e.target.checked) {
                         loadedLayers[idLayer].addTo(map);
                         map.fitBounds(loadedLayers[idLayer].getBounds());
                         activeLayersForLegend[idLayer] = true;
                         
-                        // Eksekusi pemaksaan warna ulang saat layer dipanggil ke atas peta utama
-                        aplikasikanWarnaForced(loadedLayers[idLayer], idLayer);
+                        // Jalankan pemaksaan warna ulang saat layer dipanggil ulang ke atas peta utama
+                        paksaWarnaPoligon(loadedLayers[idLayer], idLayer);
 
                         if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full');
                     } else {
                         map.removeLayer(loadedLayers[idLayer]);
                         activeLayersForLegend[idLayer] = false;
                     }
+                    
                     perbaruiHtmlLegenda();
                 });
 
@@ -345,7 +350,7 @@
             }
         }
 
-        // --- RUNNING DATA KOORDINASI NPT ---
+        // --- MENJALANKAN KESELURUHAN DATA AKTIF ---
         muatKmz('layer1', 'data/penggunaan_tanah.kmz');
         muatKmz('layer2', 'data/ketersediaan_tanah.kmz');
         muatKmz('layer3', 'data/kesesuaian_rtrw.kmz');
