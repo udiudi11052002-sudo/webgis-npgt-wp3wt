@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Auto Palette Engine)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Targeted Fields Auto-Palette)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v1.7 (Auto Palette Engine)
+            Sistem Informasi Geografis v1.8 (Targeted Fields Engine)
         </div>
     </header>
 
@@ -209,7 +209,7 @@
             '#14b8a6', '#f43f5e', '#84cc16', '#06b6d4', '#d946ef'
         ];
 
-        // --- ENGINE BACA KATEGORI DAN OTOMATISASI WARNA ---
+        // --- ENGINE BACA KATEGORI SPESIFIK DAN OTOMATISASI WARNA ---
         const kmzLegendData = {}; 
         const activeLayersForLegend = {};
 
@@ -219,39 +219,77 @@
             layerGroup.eachLayer(function(subLayer) {
                 if (subLayer.feature && subLayer.feature.properties) {
                     const p = subLayer.feature.properties;
-                    
-                    // 1. Tentukan Nama Kategori dari Atribut
-                    let label = p.REMARK || p.NAMOBJ || p.name || p.Name || p.TEKSTUR || p.EROSI || p.DRAINS || p.KDEFEK || p.PENGGUNAAN || p.penggunaan;
-                    if (!label || label.toString().trim() === "") {
-                        label = "Lain-lain / Area";
+                    let label = "";
+
+                    // 1. Tentukan Field Target Berdasarkan Jenis Layer
+                    // Pastikan yang diambil adalah string jenis data (contoh: "Sesuai", "Sedang"), bukan field ID/angka
+                    if (idLayer === 'layer1') {
+                        // Penggunaan Tanah
+                        label = p.PENGGUNAAN || p.penggunaan || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
+                    } else if (idLayer === 'layer2') {
+                        // Ketersediaan Tanah
+                        label = p.KETERSEDIAAN || p.ketersediaan || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
+                    } else if (idLayer === 'layer3') {
+                        // Kesesuaian RTRW (Fokus mencari teks "Sesuai" / "Tidak Sesuai")
+                        label = p.KESESUAIAN || p.kesesuaian || p.STATUS || p.status || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
+                    } else if (idLayer === 'layer4') {
+                        // Tekstur Tanah
+                        label = p.TEKSTUR || p.tekstur || p.KELAS_TEKS || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
+                    } else if (idLayer === 'layer5') {
+                        // Kedalaman Efektif
+                        label = p.KDEFEK || p.kdefek || p.KEDALAMAN || p.kedalaman || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
+                    } else if (idLayer === 'layer6') {
+                        // Tingkat Erosi
+                        label = p.EROSI || p.erosi || p.TGKT_EROSI || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
+                    } else if (idLayer === 'layer7') {
+                        // Tingkat Drainase
+                        label = p.DRAINS || p.drains || p.DRAINASE || p.drainase || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
+                    } else {
+                        // Fallback umum
+                        label = p.REMARK || p.NAMOBJ || p.name || p.Name || "Area Lainnya";
                     }
                     
-                    const key = label.toString().trim().toLowerCase();
+                    // Bersihkan spasi berlebih untuk memastikan konsistensi kategori
+                    label = label.toString().trim();
+                    const key = label.toLowerCase();
                     
-                    // 2. Berikan Warna Berbeda Untuk Setiap Kategori
+                    // 2. Cegah Field Numerik menjadi Label (Jika nilai berupa angka/ID, fallback ke string terdekat)
+                    if (!isNaN(key) && key !== "") {
+                         label = p.REMARK || p.NAMOBJ || p.name || `Area (ID: ${key})`;
+                    }
+
+                    // 3. Berikan Warna Berbeda Untuk Setiap Kategori
                     let fillColor;
                     if (kmzLegendData[idLayer][key]) {
                         // Jika kategori sudah ada warnanya, gunakan ulang
                         fillColor = kmzLegendData[idLayer][key].color;
                     } else {
-                        // Jika kategori baru, ambil warna dari palet berdasarkan jumlah kategori yang sudah ada
+                        // Jika kategori baru, ambil warna dari palet
                         const jumlahKategori = Object.keys(kmzLegendData[idLayer]).length;
-                        fillColor = paletWarna[jumlahKategori % paletWarna.length];
+                        
+                        // Override warna khusus untuk Kesesuaian agar lebih intuitif
+                        if (idLayer === 'layer3') {
+                            if (key.includes('tidak')) fillColor = '#ef4444'; // Merah (Tidak Sesuai)
+                            else if (key.includes('bersyarat')) fillColor = '#f59e0b'; // Kuning (Sesuai Bersyarat)
+                            else fillColor = '#10b981'; // Hijau (Sesuai)
+                        } else {
+                            fillColor = paletWarna[jumlahKategori % paletWarna.length];
+                        }
                         
                         // Simpan ke legend data
                         kmzLegendData[idLayer][key] = {
-                            label: label.toString().trim(),
+                            label: label,
                             color: fillColor
                         };
                     }
 
-                    // 3. Terapkan Style ke Poligon
+                    // 4. Terapkan Style ke Poligon
                     if (typeof subLayer.setStyle === 'function') {
                         subLayer.setStyle({
                             fillColor: fillColor,
                             color: '#ffffff',
                             weight: 1.0,
-                            fillOpacity: 0.8
+                            fillOpacity: 0.85
                         });
                     }
                 }
@@ -283,7 +321,10 @@
                     const legendItems = kmzLegendData[id] || {};
                     let count = 0;
                     
-                    for (let key in legendItems) {
+                    // Sorting kategori secara alfabetis untuk legenda yang lebih rapi
+                    const sortedKeys = Object.keys(legendItems).sort();
+                    
+                    for (let key of sortedKeys) {
                         let item = legendItems[key];
                         htmlGrup += `<div class='flex items-center gap-2'>
                                         <span class='w-3.5 h-3.5 rounded-sm border border-white/30 inline-block shadow-sm' style='background-color:${item.color}'></span>
@@ -293,7 +334,7 @@
                     }
                     
                     if(count === 0) {
-                        htmlGrup += `<p class="text-gray-500 text-[11px]">Gagal memuat warna kategori dari file KMZ.</p>`;
+                        htmlGrup += `<p class="text-gray-500 text-[11px]">Gagal memuat kategori string dari file KMZ.</p>`;
                     }
                     
                     htmlGrup += `</div></div>`;
