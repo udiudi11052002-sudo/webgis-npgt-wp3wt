@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Robust KMZ Parser)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Mobile Sidebar Fix)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -12,7 +12,7 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
-        #map { height: calc(100vh - 70px); }
+        #map { height: calc(100vh - 70px); width: 100%; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans overflow-hidden">
@@ -26,21 +26,23 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.5 (Robust Parser)
+            Sistem Informasi Geografis v2.6 (Mobile Fixed)
         </div>
     </header>
 
-    <button id="menuBtn" class="fixed top-[15px] left-4 z-[100] bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-xl border border-emerald-500 shadow-xl flex items-center justify-center transition-all duration-300 focus:outline-none md:hidden">
-        <svg id="menuIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        <svg id="closeIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <!-- Tombol Hamburger Menu Mobile -->
+    <button id="menuBtn" class="absolute top-[15px] left-4 z-[100] bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-xl border border-emerald-500 shadow-2xl flex items-center justify-center transition-all duration-300 focus:outline-none md:hidden">
+        <svg id="menuIcon" class="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        <svg id="closeIcon" class="w-6 h-6 hidden pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
     </button>
 
-    <div class="flex h-[calc(100vh-70px)] w-full relative">
-        <aside id="sidebar" class="absolute md:relative top-0 left-0 h-full w-80 bg-gray-800/95 border-r border-gray-700 flex flex-col justify-between z-40 shadow-2xl transition-all duration-300 transform -translate-x-full md:translate-x-0">
-            <div class="p-5 overflow-y-auto flex-1 mt-12 md:mt-0 space-y-6">
+    <div class="flex h-[calc(100vh-70px)] w-full relative overflow-hidden">
+        <!-- Sidebar: Diperbaiki menggunakan fixed/absolute penuh di mobile dengan z-index tinggi -->
+        <aside id="sidebar" class="absolute inset-y-0 left-0 w-80 bg-gray-800/95 backdrop-blur-md border-r border-gray-700 flex flex-col justify-between z-[90] shadow-2xl transition-transform duration-300 transform -translate-x-full md:translate-x-0 md:static md:inset-auto">
+            <div class="p-5 overflow-y-auto flex-1 mt-16 md:mt-0 space-y-6">
                 <div>
                     <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2"><span></span> DATA SPASIAL</h2>
-                    <p class="text-[11px] text-gray-500 mt-1">Sistem Render Peta Terpadu.</p>
+                    <p class="text-[11px] text-gray-500 mt-1">Aktifkan lapisan untuk menampilkan peta.</p>
                 </div>
 
                 <div class="space-y-2.5" id="layerControls">
@@ -84,6 +86,35 @@
         };
         basemaps.Satelit.addTo(map);
         L.control.layers(basemaps, null, { position: 'bottomright' }).addTo(map);
+
+        // --- MOBILE MENU TOGGLE FIX ---
+        const menuBtn = document.getElementById('menuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const menuIcon = document.getElementById('menuIcon');
+        const closeIcon = document.getElementById('closeIcon');
+
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = !sidebar.classList.contains('-translate-x-full');
+            if (isOpen) {
+                sidebar.classList.add('-translate-x-full');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            } else {
+                sidebar.classList.remove('-translate-x-full');
+                menuIcon.classList.add('hidden');
+                closeIcon.classList.remove('hidden');
+            }
+        });
+
+        // Tutup sidebar saat peta diklik di HP
+        document.getElementById('map').addEventListener('click', () => {
+            if (window.innerWidth < 768) {
+                sidebar.classList.add('-translate-x-full');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            }
+        });
 
         const loadedLayers = {};
         const activeLayers = {};
@@ -131,7 +162,6 @@
                 const parser = new DOMParser();
                 const kmlDoc = parser.parseFromString(kmlText, "text/xml");
 
-                // Parse KML Styles
                 const styleMap = {};
                 const styles = kmlDoc.getElementsByTagName('Style');
                 for (let s of styles) {
@@ -188,7 +218,6 @@
                     }
                 }));
 
-                // Fallback otomatis jika style KML kosong/tidak terbaca
                 let colorIndex = 0;
                 const legendItems = {};
                 geoLayer.eachLayer(function(subLayer) {
@@ -201,7 +230,6 @@
                         }
                     }
                     if (!val) {
-                        // Ambil field pertama yang valid
                         for (let k in p) {
                             if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke'].includes(k) && p[k]) {
                                 val = String(p[k]);
@@ -225,7 +253,6 @@
                         legendItems[val] = appliedColor;
                     }
 
-                    // Pastikan poligon diberi warna jika style asli tidak ada
                     if (!appliedColor) {
                         appliedColor = legendItems[val];
                     }
@@ -243,7 +270,11 @@
                         geoLayer.addTo(map);
                         try { map.fitBounds(geoLayer.getBounds()); } catch(err){}
                         activeLayers[cfg.id] = true;
-                        if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full');
+                        if (window.innerWidth < 768) {
+                            sidebar.classList.add('-translate-x-full');
+                            menuIcon.classList.remove('hidden');
+                            closeIcon.classList.add('hidden');
+                        }
                     } else {
                         map.removeLayer(geoLayer);
                         activeLayers[cfg.id] = false;
@@ -283,7 +314,7 @@
             }
         }
 
-        layersConfig.forEach(initLayer);
+        layersConfig.execute = layersConfig.forEach(initLayer);
     </script>
 </body>
 </html>
