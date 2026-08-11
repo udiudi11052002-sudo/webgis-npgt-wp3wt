@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Direct Attribute Mapper)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Native KML Styling Engine)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.2 (Direct Attribute Mapper)
+            Sistem Informasi Geografis v2.3 (Native KML Style Renderer)
         </div>
     </header>
 
@@ -40,19 +40,17 @@
             <div class="p-5 overflow-y-auto flex-1 mt-12 md:mt-0 space-y-6">
                 <div>
                     <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2"><span></span> DATA SPASIAL</h2>
-                    <p class="text-[11px] text-gray-500 mt-1">Menggunakan Atribut Asli KML/KMZ.</p>
+                    <p class="text-[11px] text-gray-500 mt-1">Menggunakan Styling Asli KML (Sama persis dengan Google Earth).</p>
                 </div>
 
-                <div class="space-y-2.5">
-                    <div id="layerControls" class="space-y-2">
-                        <!-- Layer Mapping -->
-                    </div>
+                <div class="space-y-2.5" id="layerControls">
+                    <!-- Dynamic Layer Toggles -->
                 </div>
 
                 <div class="border-t border-gray-700/60 pt-4">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5"><span></span> KELAS ATRIBUT AKTIF</h3>
                     <div id="dynamicLegend" class="text-xs space-y-4 text-gray-300 bg-gray-900/50 p-3 rounded-xl border border-gray-700/40 max-h-[240px] overflow-y-auto">
-                        <p class="text-gray-500 italic">Aktifkan layer untuk melihat data.</p>
+                        <p class="text-gray-500 italic">Aktifkan layer untuk melihat legenda.</p>
                     </div>
                 </div>
             </div>
@@ -79,90 +77,193 @@
 
         const map = L.map('map', { zoomControl: false }).setView([0.5435, 121.9324], 11);
         L.control.zoom({ position: 'topright' }).addTo(map);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
 
-        const paletWarna = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'];
-        
+        const basemaps = {
+            Satelit: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }),
+            PetaJalan: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { attribution: 'OSM' })
+        };
+        basemaps.Satelit.addTo(map);
+        L.control.layers(basemaps, null, { position: 'bottomright' }).addTo(map);
+
         const loadedLayers = {};
         const activeLayers = {};
-        const layerLegendData = {};
+        const layerLegends = {};
 
-        // Buat Control UI
-        const container = document.getElementById('layerControls');
-        layersConfig.forEach(l => {
-            container.innerHTML += `
+        // Render Sidebar Controls
+        const controlContainer = document.getElementById('layerControls');
+        layersConfig.forEach(cfg => {
+            controlContainer.innerHTML += `
                 <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                    <label for="${l.id}" class="text-sm font-medium flex-1 cursor-pointer">${l.label}</label>
-                    <input type="checkbox" id="${l.id}" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
+                    <label for="${cfg.id}" class="text-sm font-medium flex-1 cursor-pointer">${cfg.label}</label>
+                    <div class="flex items-center gap-3">
+                        <a href="data/${cfg.id}.kmz" download="${cfg.id}.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </a>
+                        <input type="checkbox" id="${cfg.id}" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
+                    </div>
                 </div>
             `;
         });
 
-        function getValFromFeature(feature, targetField) {
-            const props = feature.properties;
-            for (let key in props) {
-                if (key.toLowerCase() === targetField.toLowerCase()) return String(props[key]);
-            }
-            // Fallback searching if explicit field not found
-            for (let key in props) {
-                if (key.toLowerCase().includes(targetField.toLowerCase())) return String(props[key]);
-            }
-            return "Tidak Ada Data";
+        // Helper to convert KML aabbggrr color to CSS rgba
+        function kmlColorToCss(kmlColor) {
+            if (!kmlColor || kmlColor.length !== 8) return { color: '#3388ff', opacity: 0.8 };
+            let aHex = kmlColor.substring(0, 2);
+            let bHex = kmlColor.substring(2, 4);
+            let gHex = kmlColor.substring(4, 6);
+            let rHex = kmlColor.substring(6, 8);
+            
+            let alpha = parseInt(aHex, 16) / 255;
+            if (isNaN(alpha)) alpha = 0.8;
+            let hexColor = `#${rHex}${gHex}${bHex}`;
+            return { color: hexColor, opacity: alpha };
         }
 
-        async function muatKmz(config) {
+        async function initLayer(cfg) {
             try {
-                const response = await fetch(`data/${config.id}.kmz`);
+                const response = await fetch(`data/${cfg.id}.kmz`);
                 const blob = await response.blob();
                 const zip = await JSZip.loadAsync(blob);
-                const kmlText = await zip.files[Object.keys(zip.files)[0]].async("string");
-                const layer = omnivore.kml.parse(kmlText);
+                const kmlFileName = Object.keys(zip.files).find(name => name.endsWith('.kml'));
+                if (!kmlFileName) return;
                 
-                layer.on('ready', function() {
-                    let uniqueValues = {};
-                    layer.eachLayer(function(subLayer) {
-                        let val = getValFromFeature(subLayer.feature, config.field);
-                        if (!uniqueValues[val]) {
-                            uniqueValues[val] = paletWarna[Object.keys(uniqueValues).length % paletWarna.length];
+                const kmlText = await zip.files[kmlFileName].async("string");
+                const parser = new DOMParser();
+                const kmlDoc = parser.parseFromString(kmlText, "text/xml");
+
+                // Parse KML Styles (<Style id="...">)
+                const styleMap = {};
+                const styles = kmlDoc.getElementsByTagName('Style');
+                for (let s of styles) {
+                    let id = s.getAttribute('id');
+                    let polyStyle = s.getElementsByTagName('PolyStyle')[0];
+                    let lineStyle = s.getElementsByTagName('LineStyle')[0];
+                    
+                    let fillStyle = { color: '#3388ff', opacity: 0.7 };
+                    let strokeStyle = { color: '#ffffff', opacity: 1 };
+                    let weight = 1;
+
+                    if (polyStyle) {
+                        let cElem = polyStyle.getElementsByTagName('color')[0];
+                        if (cElem) fillStyle = kmlColorToCss(cElem.textContent.trim());
+                    }
+                    if (lineStyle) {
+                        let cElem = lineStyle.getElementsByTagName('color')[0];
+                        let wElem = lineStyle.getElementsByTagName('width')[0];
+                        if (cElem) strokeStyle = kmlColorToCss(cElem.textContent.trim());
+                        if (wElem) weight = parseFloat(wElem.textContent) || 1;
+                    }
+
+                    styleMap[id] = {
+                        fillColor: fillStyle.color,
+                        fillOpacity: fillStyle.opacity,
+                        color: strokeStyle.color,
+                        weight: weight
+                    };
+                }
+
+                // Parse using Omnivore
+                const geoLayer = omnivore.kml.parse(kmlDoc, null, L.geoJson(null, {
+                    style: function(feature) {
+                        let sUrl = feature.properties.styleUrl;
+                        if (sUrl) {
+                            let cleanId = sUrl.replace('#', '');
+                            if (styleMap[cleanId]) return styleMap[cleanId];
                         }
-                        subLayer.setStyle({ fillColor: uniqueValues[val], color: '#ffffff', weight: 1, fillOpacity: 0.8 });
-                        subLayer.bindPopup(`<b>${config.label}</b><br>${config.field}: ${val}`);
-                    });
-                    layerLegendData[config.id] = uniqueValues;
+                        return { fillColor: '#3388ff', fillOpacity: 0.7, color: '#ffffff', weight: 1 };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        let p = feature.properties;
+                        let content = `<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ ${cfg.label}</h3><table class='text-xs w-full'>`;
+                        
+                        let targetVal = "";
+                        for (let k in p) {
+                            if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility', 'tessellate', 'extrude'].includes(k)) {
+                                let val = p[k] || "-";
+                                if (k.toLowerCase() === cfg.field.toLowerCase()) targetVal = String(val);
+                                content += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${k}</td><td class='text-gray-800'>: ${val}</td></tr>`;
+                            }
+                        }
+                        content += "</table></div>";
+                        layer.bindPopup(content);
+                    }
+                }));
+
+                // Collect Legend items based on actual applied styles & attribute values
+                const legendItems = {};
+                geoLayer.eachLayer(function(subLayer) {
+                    let p = subLayer.feature.properties;
+                    let val = "";
+                    for (let k in p) {
+                        if (k.toLowerCase() === cfg.field.toLowerCase()) {
+                            val = String(p[k]);
+                            break;
+                        }
+                    }
+                    if (!val) val = "Atribut Utama";
+
+                    let sUrl = subLayer.feature.properties.styleUrl;
+                    let color = '#3388ff';
+                    if (sUrl && styleMap[sUrl.replace('#', '')]) {
+                        color = styleMap[sUrl.replace('#', '')].fillColor;
+                    }
+
+                    if (!legendItems[val]) {
+                        legendItems[val] = color;
+                    }
                 });
 
-                document.getElementById(config.id).addEventListener('change', function(e) {
+                layerLegends[cfg.id] = legendItems;
+                loadedLayers[cfg.id] = geoLayer;
+
+                // Checkbox listener
+                document.getElementById(cfg.id).addEventListener('change', function(e) {
                     if (e.target.checked) {
-                        layer.addTo(map);
-                        activeLayers[config.id] = true;
-                        map.fitBounds(layer.getBounds());
+                        geoLayer.addTo(map);
+                        map.fitBounds(geoLayer.getBounds());
+                        activeLayers[cfg.id] = true;
+                        if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full');
                     } else {
-                        map.removeLayer(layer);
-                        activeLayers[config.id] = false;
+                        map.removeLayer(geoLayer);
+                        activeLayers[cfg.id] = false;
                     }
-                    renderLegend();
+                    renderLegendBox();
                 });
-            } catch(e) { console.error("Error loading " + config.id); }
+
+            } catch (err) {
+                console.error("Gagal memuat layer " + cfg.id, err);
+            }
         }
 
-        function renderLegend() {
+        function renderLegendBox() {
             const container = document.getElementById('dynamicLegend');
             container.innerHTML = '';
-            let active = false;
-            layersConfig.forEach(l => {
-                if(activeLayers[l.id] && layerLegendData[l.id]) {
-                    active = true;
-                    let html = `<div class='mb-4'><p class='font-bold text-emerald-400 border-b border-gray-700'>${l.label}</p>`;
-                    for(let val in layerLegendData[l.id]) {
-                        html += `<div class='flex items-center gap-2 mt-1'><span class='w-3 h-3 rounded' style='background:${layerLegendData[l.id][val]}'></span>${val}</div>`;
+            let activeCount = 0;
+
+            layersConfig.forEach(cfg => {
+                if (activeLayers[cfg.id] && layerLegends[cfg.id]) {
+                    activeCount++;
+                    let html = `<div class='mb-3'><p class='font-bold text-emerald-400 border-b border-gray-700 pb-0.5 mb-1.5'>${cfg.label}</p><div class='space-y-1.5'>`;
+                    
+                    for (let val in layerLegends[cfg.id]) {
+                        let col = layerLegends[cfg.id][val];
+                        html += `<div class='flex items-center gap-2'>
+                                    <span class='w-3.5 h-3.5 rounded-sm border border-white/30 inline-block shadow-sm' style='background-color:${col}'></span>
+                                    <span class='capitalize leading-tight'>${val}</span>
+                                 </div>`;
                     }
-                    container.innerHTML += html + '</div>';
+                    html += `</div></div>`;
+                    container.innerHTML += html;
                 }
             });
-            if(!active) container.innerHTML = '<p class="text-gray-500 italic">Pilih layer untuk melihat legenda.</p>';
+
+            if (activeCount === 0) {
+                container.innerHTML = '<p class="text-gray-500 italic">Aktifkan layer untuk melihat legenda.</p>';
+            }
         }
 
-        layersConfig.forEach(muatKmz);
+        // Initialize all layers
+        layersConfig.forEach(initLayer);
     </script>
 </body>
 </html>
