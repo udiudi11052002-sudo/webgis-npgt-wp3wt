@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Targeted Fields Auto-Palette)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (NPGT Dictionary Engine)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v1.8 (Targeted Fields Engine)
+            Sistem Informasi Geografis v1.9 (NPGT Dictionary Engine)
         </div>
     </header>
 
@@ -200,7 +200,7 @@
             }
         }
 
-        // --- PALET WARNA KONTRAST TINGGI ---
+        // --- PALET WARNA KONTRAST TINGGI (UNTUK PENGGUNAAN TANAH) ---
         const paletWarna = [
             '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', 
             '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
@@ -209,7 +209,7 @@
             '#14b8a6', '#f43f5e', '#84cc16', '#06b6d4', '#d946ef'
         ];
 
-        // --- ENGINE BACA KATEGORI SPESIFIK DAN OTOMATISASI WARNA ---
+        // --- ENGINE TRANSLASI KODE KE TEKS & WARNA GRADASI (RED TO GREEN) ---
         const kmzLegendData = {}; 
         const activeLayersForLegend = {};
 
@@ -220,70 +220,145 @@
                 if (subLayer.feature && subLayer.feature.properties) {
                     const p = subLayer.feature.properties;
                     let label = "";
+                    let key = "";
+                    let fillColor = "#808080"; // Default abu-abu jika gagal
 
-                    // 1. Tentukan Field Target Berdasarkan Jenis Layer
-                    // Pastikan yang diambil adalah string jenis data (contoh: "Sesuai", "Sedang"), bukan field ID/angka
-                    if (idLayer === 'layer1') {
-                        // Penggunaan Tanah
-                        label = p.PENGGUNAAN || p.penggunaan || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
-                    } else if (idLayer === 'layer2') {
-                        // Ketersediaan Tanah
-                        label = p.KETERSEDIAAN || p.ketersediaan || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
-                    } else if (idLayer === 'layer3') {
-                        // Kesesuaian RTRW (Fokus mencari teks "Sesuai" / "Tidak Sesuai")
-                        label = p.KESESUAIAN || p.kesesuaian || p.STATUS || p.status || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
-                    } else if (idLayer === 'layer4') {
-                        // Tekstur Tanah
-                        label = p.TEKSTUR || p.tekstur || p.KELAS_TEKS || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
-                    } else if (idLayer === 'layer5') {
-                        // Kedalaman Efektif
-                        label = p.KDEFEK || p.kdefek || p.KEDALAMAN || p.kedalaman || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
-                    } else if (idLayer === 'layer6') {
-                        // Tingkat Erosi
-                        label = p.EROSI || p.erosi || p.TGKT_EROSI || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
-                    } else if (idLayer === 'layer7') {
-                        // Tingkat Drainase
-                        label = p.DRAINS || p.drains || p.DRAINASE || p.drainase || p.REMARK || p.NAMOBJ || "Tidak Terdefinisi";
-                    } else {
-                        // Fallback umum
-                        label = p.REMARK || p.NAMOBJ || p.name || p.Name || "Area Lainnya";
-                    }
-                    
-                    // Bersihkan spasi berlebih untuk memastikan konsistensi kategori
-                    label = label.toString().trim();
-                    const key = label.toLowerCase();
-                    
-                    // 2. Cegah Field Numerik menjadi Label (Jika nilai berupa angka/ID, fallback ke string terdekat)
-                    if (!isNaN(key) && key !== "") {
-                         label = p.REMARK || p.NAMOBJ || p.name || `Area (ID: ${key})`;
-                    }
-
-                    // 3. Berikan Warna Berbeda Untuk Setiap Kategori
-                    let fillColor;
-                    if (kmzLegendData[idLayer][key]) {
-                        // Jika kategori sudah ada warnanya, gunakan ulang
-                        fillColor = kmzLegendData[idLayer][key].color;
-                    } else {
-                        // Jika kategori baru, ambil warna dari palet
-                        const jumlahKategori = Object.keys(kmzLegendData[idLayer]).length;
-                        
-                        // Override warna khusus untuk Kesesuaian agar lebih intuitif
-                        if (idLayer === 'layer3') {
-                            if (key.includes('tidak')) fillColor = '#ef4444'; // Merah (Tidak Sesuai)
-                            else if (key.includes('bersyarat')) fillColor = '#f59e0b'; // Kuning (Sesuai Bersyarat)
-                            else fillColor = '#10b981'; // Hijau (Sesuai)
-                        } else {
-                            fillColor = paletWarna[jumlahKategori % paletWarna.length];
+                    // Helper untuk mencari field yang relevan
+                    const getVal = (fields) => {
+                        for(let f of fields) {
+                            if(p[f] !== undefined && p[f] !== null && p[f] !== "") return p[f].toString().trim();
                         }
+                        return "";
+                    };
+
+                    // --- LAYER 1: PENGGUNAAN TANAH (PALET OTOMATIS) ---
+                    if (idLayer === 'layer1') {
+                        let rawVal = getVal(['PENGGUNAAN', 'penggunaan', 'REMARK', 'NAMOBJ', 'Name', 'name']);
+                        if (!rawVal || !isNaN(rawVal)) rawVal = "Area Lainnya";
                         
-                        // Simpan ke legend data
+                        label = rawVal;
+                        key = label.toLowerCase();
+                        
+                        if (kmzLegendData[idLayer][key]) {
+                            fillColor = kmzLegendData[idLayer][key].color;
+                        } else {
+                            fillColor = paletWarna[Object.keys(kmzLegendData[idLayer]).length % paletWarna.length];
+                        }
+                    } 
+                    
+                    // --- LAYER 2: KETERSEDIAAN TANAH (HIJAU/MERAH) ---
+                    else if (idLayer === 'layer2') {
+                        let rawVal = getVal(['KETERSEDIAAN', 'ketersediaan', 'REMARK', 'NAMOBJ', 'Name', 'name']).toLowerCase();
+                        
+                        if (rawVal.includes('tidak')) { 
+                            label = 'Tidak Tersedia'; fillColor = '#ef4444'; // Merah
+                        } else if (rawVal.includes('terbatas')) { 
+                            label = 'Terbatas'; fillColor = '#f59e0b'; // Kuning
+                        } else { 
+                            label = 'Tersedia'; fillColor = '#10b981'; // Hijau
+                        }
+                        key = label.toLowerCase();
+                    } 
+                    
+                    // --- LAYER 3: KESESUAIAN RTRW (HIJAU/MERAH) ---
+                    else if (idLayer === 'layer3') {
+                        let rawVal = getVal(['KESESUAIAN', 'kesesuaian', 'STATUS', 'status', 'REMARK', 'NAMOBJ', 'Name', 'name']).toLowerCase();
+                        
+                        if (rawVal.includes('tidak')) { 
+                            label = 'Tidak Sesuai'; fillColor = '#ef4444'; // Merah
+                        } else if (rawVal.includes('bersyarat')) { 
+                            label = 'Sesuai Bersyarat'; fillColor = '#f59e0b'; // Kuning
+                        } else { 
+                            label = 'Sesuai'; fillColor = '#10b981'; // Hijau
+                        }
+                        key = label.toLowerCase();
+                    } 
+                    
+                    // --- LAYER 4: TEKSTUR TANAH (GRADASI MERAH KE HIJAU) ---
+                    else if (idLayer === 'layer4') {
+                        let rawVal = getVal(['TEKSTUR', 'tekstur', 'KELAS_TEKS', 'REMARK', 'NAMOBJ', 'Name', 'name']).toLowerCase();
+                        
+                        if (rawVal === '1' || (rawVal.includes('halus') && !rawVal.includes('agak'))) { 
+                            label = 'Halus'; fillColor = '#1a9850'; // Hijau Gelap
+                        } else if (rawVal === '2' || rawVal.includes('agak halus')) { 
+                            label = 'Agak Halus'; fillColor = '#91cf60'; // Hijau Muda
+                        } else if (rawVal === '3' || rawVal.includes('sedang')) { 
+                            label = 'Sedang'; fillColor = '#d9ef8b'; // Kuning Kehijauan
+                        } else if (rawVal === '4' || rawVal.includes('agak kasar')) { 
+                            label = 'Agak Kasar'; fillColor = '#fc8d59'; // Orange
+                        } else if (rawVal === '5' || rawVal.includes('kasar')) { 
+                            label = 'Kasar'; fillColor = '#d73027'; // Merah
+                        } else { 
+                            label = rawVal || 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
+                        key = label.toLowerCase();
+                    } 
+                    
+                    // --- LAYER 5: KEDALAMAN EFEKTIF (GRADASI MERAH KE HIJAU) ---
+                    else if (idLayer === 'layer5') {
+                        let rawVal = getVal(['KDEFEK', 'kdefek', 'KEDALAMAN', 'kedalaman', 'REMARK', 'NAMOBJ', 'Name', 'name']).toLowerCase();
+                        
+                        if (rawVal === 'b' || rawVal.includes('90')) { 
+                            label = '90 - 150 cm'; fillColor = '#1a9850'; // Hijau Gelap (Dalam = Bagus)
+                        } else if (rawVal === 'c' || rawVal.includes('75')) { 
+                            label = '75 - 90 cm'; fillColor = '#91cf60'; // Hijau Muda
+                        } else if (rawVal === 'd' || rawVal.includes('60')) { 
+                            label = '60 - 75 cm'; fillColor = '#d9ef8b'; // Kuning Kehijauan
+                        } else if (rawVal === 'e' || rawVal.includes('50')) { 
+                            label = '50 - 60 cm'; fillColor = '#fc8d59'; // Orange
+                        } else if (rawVal === 'f' || rawVal.includes('30')) { 
+                            label = '30 - 50 cm'; fillColor = '#d73027'; // Merah (Dangkal = Buruk)
+                        } else { 
+                            label = rawVal || 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
+                        key = label.toLowerCase();
+                    } 
+                    
+                    // --- LAYER 6: TINGKAT EROSI (GRADASI MERAH KE HIJAU) ---
+                    else if (idLayer === 'layer6') {
+                        let rawVal = getVal(['EROSI', 'erosi', 'TGKT_EROSI', 'REMARK', 'NAMOBJ', 'Name', 'name']).toLowerCase();
+                        
+                        if (rawVal === 't' || rawVal.includes('tidak')) { 
+                            label = 'Tidak Ada Erosi'; fillColor = '#1a9850'; // Hijau Gelap (Tidak Erosi = Bagus)
+                        } else if (rawVal === 'e1' || rawVal.includes('ringan')) { 
+                            label = 'Erosi Ringan'; fillColor = '#91cf60'; // Hijau Muda
+                        } else if (rawVal === 'e2' || rawVal.includes('sedang')) { 
+                            label = 'Erosi Sedang'; fillColor = '#d9ef8b'; // Kuning Kehijauan
+                        } else if (rawVal === 'e3' || (rawVal.includes('berat') && !rawVal.includes('sangat'))) { 
+                            label = 'Erosi Berat'; fillColor = '#fc8d59'; // Orange
+                        } else if (rawVal === 'e4' || rawVal.includes('sangat berat')) { 
+                            label = 'Erosi Sangat Berat'; fillColor = '#d73027'; // Merah (Erosi Tinggi = Buruk)
+                        } else { 
+                            label = rawVal || 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
+                        key = label.toLowerCase();
+                    } 
+                    
+                    // --- LAYER 7: TINGKAT DRAINASE (GRADASI MERAH KE HIJAU) ---
+                    else if (idLayer === 'layer7') {
+                        let rawVal = getVal(['DRAINS', 'drains', 'DRAINASE', 'drainase', 'REMARK', 'NAMOBJ', 'Name', 'name']).toLowerCase();
+                        
+                        if (rawVal === 'b' || rawVal.includes('tidak')) { 
+                            label = 'Tidak Pernah Tergenang'; fillColor = '#1a9850'; // Hijau Gelap
+                        } else if (rawVal === 'c' || rawVal.includes('periodik')) { 
+                            label = 'Tergenang Periodik'; fillColor = '#d9ef8b'; // Kuning Kehijauan
+                        } else if (rawVal === 'd' || rawVal.includes('terus')) { 
+                            label = 'Tergenang Terus Menerus'; fillColor = '#d73027'; // Merah (Tergenang = Buruk)
+                        } else { 
+                            label = rawVal || 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
+                        key = label.toLowerCase();
+                    }
+                    
+                    // Simpan data unik ke variabel legend
+                    if (key !== 'tidak terdefinisi' && key !== "") {
                         kmzLegendData[idLayer][key] = {
                             label: label,
                             color: fillColor
                         };
                     }
 
-                    // 4. Terapkan Style ke Poligon
+                    // Terapkan Style ke Poligon Leaflet
                     if (typeof subLayer.setStyle === 'function') {
                         subLayer.setStyle({
                             fillColor: fillColor,
@@ -321,11 +396,29 @@
                     const legendItems = kmzLegendData[id] || {};
                     let count = 0;
                     
-                    // Sorting kategori secara alfabetis untuk legenda yang lebih rapi
-                    const sortedKeys = Object.keys(legendItems).sort();
+                    // Menyusun object values untuk di-sort (agar gradasi warnanya urut, bukan sekadar alfabetis)
+                    let itemsArray = Object.values(legendItems);
                     
-                    for (let key of sortedKeys) {
-                        let item = legendItems[key];
+                    // Custom Sorting untuk Layer 4, 5, 6, 7 (Urutan Gradasi / Severity)
+                    if (['layer4', 'layer5', 'layer6', 'layer7'].includes(id)) {
+                         const urutanPrioritas = ['halus', 'agak halus', 'sedang', 'agak kasar', 'kasar', 
+                                                  '90 - 150 cm', '75 - 90 cm', '60 - 75 cm', '50 - 60 cm', '30 - 50 cm',
+                                                  'tidak ada erosi', 'erosi ringan', 'erosi sedang', 'erosi berat', 'erosi sangat berat',
+                                                  'tidak pernah tergenang', 'tergenang periodik', 'tergenang terus menerus'];
+                         
+                         itemsArray.sort((a, b) => {
+                             let idxA = urutanPrioritas.indexOf(a.label.toLowerCase());
+                             let idxB = urutanPrioritas.indexOf(b.label.toLowerCase());
+                             if (idxA === -1) idxA = 999;
+                             if (idxB === -1) idxB = 999;
+                             return idxA - idxB;
+                         });
+                    } else {
+                         // Sorting alfabetis untuk layer 1, 2, 3
+                         itemsArray.sort((a, b) => a.label.localeCompare(b.label));
+                    }
+                    
+                    for (let item of itemsArray) {
                         htmlGrup += `<div class='flex items-center gap-2'>
                                         <span class='w-3.5 h-3.5 rounded-sm border border-white/30 inline-block shadow-sm' style='background-color:${item.color}'></span>
                                         <span class='capitalize leading-tight'>${item.label}</span>
@@ -334,7 +427,7 @@
                     }
                     
                     if(count === 0) {
-                        htmlGrup += `<p class="text-gray-500 text-[11px]">Gagal memuat kategori string dari file KMZ.</p>`;
+                        htmlGrup += `<p class="text-gray-500 text-[11px]">Gagal memuat kategori dari file KMZ.</p>`;
                     }
                     
                     htmlGrup += `</div></div>`;
