@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Exact Field Mapper)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Direct Attribute Mapper)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.1 (Exact Field Mapper)
+            Sistem Informasi Geografis v2.2 (Direct Attribute Mapper)
         </div>
     </header>
 
@@ -36,108 +36,27 @@
     </button>
 
     <div class="flex h-[calc(100vh-70px)] w-full relative">
-        
         <aside id="sidebar" class="absolute md:relative top-0 left-0 h-full w-80 bg-gray-800/95 border-r border-gray-700 flex flex-col justify-between z-40 shadow-2xl transition-all duration-300 transform -translate-x-full md:translate-x-0">
             <div class="p-5 overflow-y-auto flex-1 mt-12 md:mt-0 space-y-6">
                 <div>
-                    <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
-                        <span></span> DATA SPASIAL
-                    </h2>
-                    <p class="text-[11px] text-gray-500 mt-1">Aktifkan lapisan untuk menampilkan peta dan unduh berkas KMZ.</p>
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2"><span></span> DATA SPASIAL</h2>
+                    <p class="text-[11px] text-gray-500 mt-1">Menggunakan Atribut Asli KML/KMZ.</p>
                 </div>
 
                 <div class="space-y-2.5">
-                    <!-- Layer 1 -->
-                    <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                        <label for="layer1" class="text-sm font-medium flex-1 cursor-pointer">Penggunaan Tanah</label>
-                        <div class="flex items-center gap-3">
-                            <a href="data/penggunaan_tanah.kmz" download="penggunaan_tanah.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            <input type="checkbox" id="layer1" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- Layer 2 -->
-                    <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                        <label for="layer2" class="text-sm font-medium flex-1 cursor-pointer">Ketersediaan Tanah</label>
-                        <div class="flex items-center gap-3">
-                            <a href="data/ketersediaan_tanah.kmz" download="ketersediaan_tanah.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            <input type="checkbox" id="layer2" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- Layer 3 -->
-                    <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                        <label for="layer3" class="text-sm font-medium flex-1 cursor-pointer text-[13px] leading-tight">Kesesuaian Rencana Pola Ruang</label>
-                        <div class="flex items-center gap-3">
-                            <a href="data/kesesuaian_rtrw.kmz" download="kesesuaian_rtrw.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            <input type="checkbox" id="layer3" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- Layer 4 -->
-                    <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                        <label for="layer4" class="text-sm font-medium flex-1 cursor-pointer">Tekstur Tanah</label>
-                        <div class="flex items-center gap-3">
-                            <a href="data/tekstur_tanah.kmz" download="tekstur_tanah.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            <input type="checkbox" id="layer4" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- Layer 5 -->
-                    <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                        <label for="layer5" class="text-sm font-medium flex-1 cursor-pointer">Kedalaman Efektif</label>
-                        <div class="flex items-center gap-3">
-                            <a href="data/kedalaman_efektif.kmz" download="kedalaman_efektif.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            <input type="checkbox" id="layer5" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- Layer 6 -->
-                    <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                        <label for="layer6" class="text-sm font-medium flex-1 cursor-pointer">Tingkat Erosi</label>
-                        <div class="flex items-center gap-3">
-                            <a href="data/tingkat_erosi.kmz" download="tingkat_erosi.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            <input type="checkbox" id="layer6" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- Layer 7 -->
-                    <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                        <label for="layer7" class="text-sm font-medium flex-1 cursor-pointer">Tingkat Drainase</label>
-                        <div class="flex items-center gap-3">
-                            <a href="data/tingkat_drainase.kmz" download="tingkat_drainase.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            </a>
-                            <input type="checkbox" id="layer7" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
-                        </div>
+                    <div id="layerControls" class="space-y-2">
+                        <!-- Layer Mapping -->
                     </div>
                 </div>
 
                 <div class="border-t border-gray-700/60 pt-4">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
-                        <span></span> KELAS ATRIBUT AKTIF
-                    </h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5"><span></span> KELAS ATRIBUT AKTIF</h3>
                     <div id="dynamicLegend" class="text-xs space-y-4 text-gray-300 bg-gray-900/50 p-3 rounded-xl border border-gray-700/40 max-h-[240px] overflow-y-auto">
-                        <p class="text-gray-500 italic">Silakan aktifkan layer untuk melihat legenda tata warna.</p>
+                        <p class="text-gray-500 italic">Aktifkan layer untuk melihat data.</p>
                     </div>
                 </div>
             </div>
-
-            <div class="p-4 bg-gray-950 border-t border-gray-700 text-center text-xs text-gray-500">
-                KANWIL BPN PROVINSI GORONTALO © 2026
-            </div>
+            <div class="p-4 bg-gray-950 border-t border-gray-700 text-center text-xs text-gray-500">KANWIL BPN PROVINSI GORONTALO © 2026</div>
         </aside>
 
         <main id="map" class="flex-1 z-10 w-full"></main>
@@ -148,350 +67,102 @@
     <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
 
     <script>
-        // --- LOGIKA TAMPILAN SIDEBAR ---
-        const menuBtn = document.getElementById('menuBtn');
-        const sidebar = document.getElementById('sidebar');
-        const menuIcon = document.getElementById('menuIcon');
-        const closeIcon = document.getElementById('closeIcon');
-
-        menuBtn.addEventListener('click', () => {
-            const isHidden = sidebar.classList.contains('-translate-x-full');
-            sidebar.classList.toggle('-translate-x-full', !isHidden);
-            menuIcon.classList.toggle('hidden', isHidden);
-            closeIcon.classList.toggle('hidden', !isHidden);
-        });
-
-        document.getElementById('map').addEventListener('click', () => {
-            if (window.innerWidth < 768) {
-                sidebar.classList.add('-translate-x-full');
-                menuIcon.classList.remove('hidden');
-                closeIcon.classList.add('hidden');
-            }
-        });
-
-        // --- DEKLARASI PETA LEAFLET ---
-        const map = L.map('map', { zoomControl: false }).setView([0.5435, 121.9324], 11);
-        L.control.zoom({ position: 'topright' }).addTo(map);
-
-        const basemaps = {
-            Satelit: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri Satellites' }),
-            PetaJalan: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { attribution: 'OpenStreetMap' })
-        };
-        basemaps.Satelit.addTo(map);
-        L.control.layers(basemaps, null, { position: 'bottomright' }).addTo(map);
-
-        // --- BERSIHKAN TABEL POPUP ATRIBUT ---
-        function customPopup(feature, layer) {
-            if (feature.properties) {
-                let content = "<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ Informasi Atribut</h3><table class='text-xs w-full'>";
-                
-                const hiddenFields = ['styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility', 'altitudeMode', 
-                                      'tessellate', 'extrude', 'drawOrder', 'icon', 'snippet', 'fill-opacity', 
-                                      'stroke-opacity', 'stroke-width', 'description'];
-
-                for (let key in feature.properties) {
-                    if(!hiddenFields.includes(key)) {
-                        let val = feature.properties[key] || "-";
-                        content += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${key}</td><td class='text-gray-800'>: ${val}</td></tr>`;
-                    }
-                }
-                content += "</table></div>";
-                layer.bindPopup(content);
-            }
-        }
-
-        // --- PALET WARNA PENGGUNAAN TANAH ---
-        const paletWarna = [
-            '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', 
-            '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
-            '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', 
-            '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
+        const layersConfig = [
+            { id: 'layer1', label: 'Penggunaan Tanah', field: 'PENGGUNAAN' },
+            { id: 'layer2', label: 'Ketersediaan Tanah', field: 'KETERSEDIAAN' },
+            { id: 'layer3', label: 'Kesesuaian Rencana Pola Ruang', field: 'KSPOLA' },
+            { id: 'layer4', label: 'Tekstur Tanah', field: 'TEKSTUR' },
+            { id: 'layer5', label: 'Kedalaman Efektif', field: 'KDEFEK' },
+            { id: 'layer6', label: 'Tingkat Erosi', field: 'EROSI' },
+            { id: 'layer7', label: 'Tingkat Drainase', field: 'DRAINS' }
         ];
 
-        // --- EXACT FIELD MAPPING ENGINE ---
-        const kmzLegendData = {}; 
-        const activeLayersForLegend = {};
+        const map = L.map('map', { zoomControl: false }).setView([0.5435, 121.9324], 11);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
 
-        function ekstrakWarnaDanLegenda(layerGroup, idLayer) {
-            if (!kmzLegendData[idLayer]) kmzLegendData[idLayer] = {};
-            
-            layerGroup.eachLayer(function(subLayer) {
-                if (subLayer.feature && subLayer.feature.properties) {
-                    const p = subLayer.feature.properties;
-                    let label = "";
-                    let fillColor = "#808080"; 
-
-                    // Fungsi untuk mencari nilai secara fleksibel (mengabaikan kapitalisasi huruf pada nama field)
-                    const getValByField = (targetField) => {
-                        for (let k in p) {
-                            if (k.toLowerCase() === targetField.toLowerCase() && p[k] !== null && p[k] !== undefined) {
-                                return String(p[k]).trim();
-                            }
-                        }
-                        return "";
-                    };
-
-                    // --- LAYER 1: PENGGUNAAN TANAH (FIELD: PENGGUNAAN / REMARK) ---
-                    if (idLayer === 'layer1') {
-                        let rawVal = getValByField('PENGGUNAAN') || getValByField('REMARK') || getValByField('NAMOBJ') || getValByField('Name');
-                        if (!rawVal || !isNaN(rawVal)) rawVal = "Area Lainnya";
-                        
-                        label = rawVal;
-                        let key = label.toLowerCase();
-                        
-                        if (kmzLegendData[idLayer][key]) {
-                            fillColor = kmzLegendData[idLayer][key].color;
-                        } else {
-                            fillColor = paletWarna[Object.keys(kmzLegendData[idLayer]).length % paletWarna.length];
-                        }
-                    } 
-                    
-                    // --- LAYER 2: KETERSEDIAAN TANAH ---
-                    else if (idLayer === 'layer2') {
-                        let rawVal = (getValByField('KETERSEDIAAN') || getValByField('REMARK') || getValByField('NAMOBJ')).toLowerCase();
-                        if (rawVal.includes('tidak')) { label = 'Tidak Tersedia'; fillColor = '#ef4444'; }
-                        else if (rawVal.includes('terbatas')) { label = 'Terbatas'; fillColor = '#f59e0b'; }
-                        else { label = 'Tersedia'; fillColor = '#10b981'; }
-                    } 
-                    
-                    // --- LAYER 3: KESESUAIAN RENCANA POLA RUANG (FIELD TARGET: KSPOLA) ---
-                    else if (idLayer === 'layer3') {
-                        let rawVal = getValByField('KSPOLA').toLowerCase();
-                        if (rawVal === '') {
-                            // Fallback jika field KSPOLA tidak ditemukan, cek field umum
-                            rawVal = (getValByField('KESESUAIAN') || getValByField('STATUS') || getValByField('REMARK')).toLowerCase();
-                        }
-
-                        if (rawVal.includes('tidak') || rawVal.includes('ts')) { 
-                            label = 'Tidak Sesuai'; fillColor = '#ef4444'; // Merah
-                        } else if (rawVal.includes('bersyarat')) { 
-                            label = 'Sesuai Bersyarat'; fillColor = '#f59e0b'; // Kuning
-                        } else { 
-                            label = rawVal ? rawVal.replace(/\w/g, l => l.toUpperCase()) : 'Sesuai'; 
-                            fillColor = '#10b981'; // Hijau
-                        }
-                    } 
-                    
-                    // --- LAYER 4: TEKSTUR TANAH (FIELD TARGET: TEKSTUR) ---
-                    else if (idLayer === 'layer4') {
-                        let rawVal = getValByField('TEKSTUR').toLowerCase();
-                        if (rawVal === '') rawVal = getValByField('KELAS_TEKS').toLowerCase();
-
-                        if (rawVal === '1' || rawVal.includes('halus') && !rawVal.includes('agak')) { 
-                            label = 'Halus'; fillColor = '#1a9850'; 
-                        } else if (rawVal === '2' || rawVal.includes('agak halus')) { 
-                            label = 'Agak Halus'; fillColor = '#91cf60'; 
-                        } else if (rawVal === '3' || rawVal.includes('sedang')) { 
-                            label = 'Sedang'; fillColor = '#d9ef8b'; 
-                        } else if (rawVal === '4' || rawVal.includes('agak kasar')) { 
-                            label = 'Agak Kasar'; fillColor = '#fc8d59'; 
-                        } else if (rawVal === '5' || rawVal.includes('kasar')) { 
-                            label = 'Kasar'; fillColor = '#d73027'; 
-                        } else { 
-                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
-                        }
-                    } 
-                    
-                    // --- LAYER 5: KEDALAMAN EFEKTIF (FIELD TARGET: KDEFEK) ---
-                    else if (idLayer === 'layer5') {
-                        let rawVal = getValByField('KDEFEK').toLowerCase();
-                        if (rawVal === '') rawVal = getValByField('KEDALAMAN').toLowerCase();
-
-                        if (rawVal === 'b' || rawVal.includes('90')) { 
-                            label = '90 - 150 cm'; fillColor = '#1a9850'; 
-                        } else if (rawVal === 'c' || rawVal.includes('75')) { 
-                            label = '75 - 90 cm'; fillColor = '#91cf60'; 
-                        } else if (rawVal === 'd' || rawVal.includes('60')) { 
-                            label = '60 - 75 cm'; fillColor = '#d9ef8b'; 
-                        } else if (rawVal === 'e' || rawVal.includes('50')) { 
-                            label = '50 - 60 cm'; fillColor = '#fc8d59'; 
-                        } else if (rawVal === 'f' || rawVal.includes('30')) { 
-                            label = '30 - 50 cm'; fillColor = '#d73027'; 
-                        } else { 
-                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
-                        }
-                    } 
-                    
-                    // --- LAYER 6: TINGKAT EROSI (FIELD TARGET: EROSI) ---
-                    else if (idLayer === 'layer6') {
-                        let rawVal = getValByField('EROSI').toLowerCase();
-                        if (rawVal === '') rawVal = getValByField('TGKT_EROSI').toLowerCase();
-
-                        if (rawVal === 'e4' || rawVal.includes('sangat berat')) { 
-                            label = 'Erosi Sangat Berat'; fillColor = '#d73027'; 
-                        } else if (rawVal === 'e3' || (rawVal.includes('berat') && !rawVal.includes('sangat'))) { 
-                            label = 'Erosi Berat'; fillColor = '#fc8d59'; 
-                        } else if (rawVal === 'e2' || rawVal.includes('sedang')) { 
-                            label = 'Erosi Sedang'; fillColor = '#d9ef8b'; 
-                        } else if (rawVal === 'e1' || rawVal.includes('ringan')) { 
-                            label = 'Erosi Ringan'; fillColor = '#91cf60'; 
-                        } else if (rawVal === 't' || rawVal.includes('tidak')) { 
-                            label = 'Tidak Ada Erosi'; fillColor = '#1a9850'; 
-                        } else { 
-                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
-                        }
-                    } 
-                    
-                    // --- LAYER 7: TINGKAT DRAINASE (FIELD TARGET: DRAINS) ---
-                    else if (idLayer === 'layer7') {
-                        let rawVal = getValByField('DRAINS').toLowerCase();
-                        if (rawVal === '') rawVal = getValByField('DRAINASE').toLowerCase();
-
-                        if (rawVal === 'd' || rawVal.includes('terus')) { 
-                            label = 'Tergenang Terus Menerus'; fillColor = '#d73027'; 
-                        } else if (rawVal === 'c' || rawVal.includes('periodik')) { 
-                            label = 'Tergenang Periodik'; fillColor = '#d9ef8b'; 
-                        } else if (rawVal === 'b' || rawVal.includes('tidak')) { 
-                            label = 'Tidak Pernah Tergenang'; fillColor = '#1a9850'; 
-                        } else { 
-                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
-                        }
-                    }
-
-                    // 2. Simpan ke kamus legenda
-                    let key = label.toLowerCase();
-                    if (key !== 'tidak terdefinisi' && key !== "") {
-                        kmzLegendData[idLayer][key] = {
-                            label: label,
-                            color: fillColor
-                        };
-                    }
-
-                    // 3. Terapkan warna ke poligon Leaflet
-                    if (typeof subLayer.setStyle === 'function') {
-                        subLayer.setStyle({
-                            fillColor: fillColor,
-                            color: '#ffffff',
-                            weight: 1.0,
-                            fillOpacity: 0.85
-                        });
-                    }
-                }
-
-                if (typeof subLayer.eachLayer === 'function') {
-                    ekstrakWarnaDanLegenda(subLayer, idLayer);
-                }
-            });
-        }
-
-        // --- UPDATE PANEL BOX LEGENDA ---
-        function perbaruiHtmlLegenda() {
-            const container = document.getElementById('dynamicLegend');
-            container.innerHTML = '';
-            let adaLayerAktif = false;
-            
-            const susunanJudul = {
-                'layer1': 'Penggunaan Tanah', 'layer2': 'Ketersediaan Tanah', 'layer3': 'Kesesuaian Rencana Pola Ruang',
-                'layer4': 'Tekstur Tanah', 'layer5': 'Kedalaman Efektif', 
-                'layer6': 'Tingkat Erosi', 'layer7': 'Tingkat Drainase'
-            };
-
-            for (let id in activeLayersForLegend) {
-                if (activeLayersForLegend[id]) {
-                    adaLayerAktif = true;
-                    let htmlGrup = `<div class='mb-3'><p class='font-bold text-emerald-400 border-b border-gray-700 pb-0.5 mb-1.5'>${susunanJudul[id]}</p><div class='space-y-1.5'>`;
-                    
-                    const legendItems = kmzLegendData[id] || {};
-                    let count = 0;
-                    let itemsArray = Object.values(legendItems);
-                    
-                    // Urutkan legenda fisik berdasarkan tingkat keparahan (Hijau ke Merah)
-                    if (['layer4', 'layer5', 'layer6', 'layer7'].includes(id)) {
-                         const urutanPrioritas = [
-                             'halus', 'agak halus', 'sedang', 'agak kasar', 'kasar', 
-                             '90 - 150 cm', '75 - 90 cm', '60 - 75 cm', '50 - 60 cm', '30 - 50 cm',
-                             'tidak ada erosi', 'erosi ringan', 'erosi sedang', 'erosi berat', 'erosi sangat berat',
-                             'tidak pernah tergenang', 'tergenang periodik', 'tergenang terus menerus'
-                         ];
-                         itemsArray.sort((a, b) => {
-                             let idxA = urutanPrioritas.indexOf(a.label.toLowerCase());
-                             let idxB = urutanPrioritas.indexOf(b.label.toLowerCase());
-                             if (idxA === -1) idxA = 999;
-                             if (idxB === -1) idxB = 999;
-                             return idxA - idxB;
-                         });
-                    } else {
-                         itemsArray.sort((a, b) => a.label.localeCompare(b.label));
-                    }
-                    
-                    for (let item of itemsArray) {
-                        htmlGrup += `<div class='flex items-center gap-2'>
-                                        <span class='w-3.5 h-3.5 rounded-sm border border-white/30 inline-block shadow-sm' style='background-color:${item.color}'></span>
-                                        <span class='capitalize leading-tight'>${item.label}</span>
-                                     </div>`;
-                        count++;
-                    }
-                    
-                    if(count === 0) {
-                        htmlGrup += `<p class="text-gray-500 text-[11px]">Gagal memuat kategori dari file KMZ (Field atribut tidak cocok).</p>`;
-                    }
-                    
-                    htmlGrup += `</div></div>`;
-                    container.innerHTML += htmlGrup;
-                }
-            }
-            
-            if (!adaLayerAktif) {
-                container.innerHTML = '<p class="text-gray-500 italic">Silakan aktifkan layer untuk melihat legenda tata warna.</p>';
-            }
-        }
-
-        // --- MEMBACA DAN MEMPROSES BERKAS KMZ ---
+        const paletWarna = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'];
+        
         const loadedLayers = {};
-        async function muatKmz(idLayer, urlFile) {
+        const activeLayers = {};
+        const layerLegendData = {};
+
+        // Buat Control UI
+        const container = document.getElementById('layerControls');
+        layersConfig.forEach(l => {
+            container.innerHTML += `
+                <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
+                    <label for="${l.id}" class="text-sm font-medium flex-1 cursor-pointer">${l.label}</label>
+                    <input type="checkbox" id="${l.id}" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
+                </div>
+            `;
+        });
+
+        function getValFromFeature(feature, targetField) {
+            const props = feature.properties;
+            for (let key in props) {
+                if (key.toLowerCase() === targetField.toLowerCase()) return String(props[key]);
+            }
+            // Fallback searching if explicit field not found
+            for (let key in props) {
+                if (key.toLowerCase().includes(targetField.toLowerCase())) return String(props[key]);
+            }
+            return "Tidak Ada Data";
+        }
+
+        async function muatKmz(config) {
             try {
-                const response = await fetch(urlFile);
+                const response = await fetch(`data/${config.id}.kmz`);
                 const blob = await response.blob();
                 const zip = await JSZip.loadAsync(blob);
+                const kmlText = await zip.files[Object.keys(zip.files)[0]].async("string");
+                const layer = omnivore.kml.parse(kmlText);
                 
-                const kmlFile = Object.keys(zip.files).find(name => name.endsWith('.kml'));
-                if (!kmlFile) return;
-                
-                const kmlText = await zip.files[kmlFile].async("string");
-                const parser = new DOMParser();
-                const kmlDoc = parser.parseFromString(kmlText, "text/xml");
-                
-                const layerGeospasial = omnivore.kml.parse(kmlDoc, null, L.geoJson(null, {
-                    onEachFeature: customPopup
-                }));
-
-                layerGeospasial.on('ready', function() {
-                    ekstrakWarnaDanLegenda(layerGeospasial, idLayer);
+                layer.on('ready', function() {
+                    let uniqueValues = {};
+                    layer.eachLayer(function(subLayer) {
+                        let val = getValFromFeature(subLayer.feature, config.field);
+                        if (!uniqueValues[val]) {
+                            uniqueValues[val] = paletWarna[Object.keys(uniqueValues).length % paletWarna.length];
+                        }
+                        subLayer.setStyle({ fillColor: uniqueValues[val], color: '#ffffff', weight: 1, fillOpacity: 0.8 });
+                        subLayer.bindPopup(`<b>${config.label}</b><br>${config.field}: ${val}`);
+                    });
+                    layerLegendData[config.id] = uniqueValues;
                 });
 
-                loadedLayers[idLayer] = layerGeospasial;
-
-                document.getElementById(idLayer).addEventListener('change', function (e) {
+                document.getElementById(config.id).addEventListener('change', function(e) {
                     if (e.target.checked) {
-                        loadedLayers[idLayer].addTo(map);
-                        map.fitBounds(loadedLayers[idLayer].getBounds());
-                        activeLayersForLegend[idLayer] = true;
-                        
-                        ekstrakWarnaDanLegenda(loadedLayers[idLayer], idLayer);
-
-                        if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full');
+                        layer.addTo(map);
+                        activeLayers[config.id] = true;
+                        map.fitBounds(layer.getBounds());
                     } else {
-                        map.removeLayer(loadedLayers[idLayer]);
-                        activeLayersForLegend[idLayer] = false;
+                        map.removeLayer(layer);
+                        activeLayers[config.id] = false;
                     }
-                    
-                    perbaruiHtmlLegenda();
+                    renderLegend();
                 });
-
-            } catch (error) {
-                console.error(`Gagal memproses file KMZ (${urlFile}):`, error);
-            }
+            } catch(e) { console.error("Error loading " + config.id); }
         }
 
-        // --- MENJALANKAN KESELURUHAN DATA AKTIF ---
-        muatKmz('layer1', 'data/penggunaan_tanah.kmz');
-        muatKmz('layer2', 'data/ketersediaan_tanah.kmz');
-        muatKmz('layer3', 'data/kesesuaian_rtrw.kmz');
-        muatKmz('layer4', 'data/tekstur_tanah.kmz');
-        muatKmz('layer5', 'data/kedalaman_efektif.kmz');
-        muatKmz('layer6', 'data/tingkat_erosi.kmz');
-        muatKmz('layer7', 'data/tingkat_drainase.kmz');
+        function renderLegend() {
+            const container = document.getElementById('dynamicLegend');
+            container.innerHTML = '';
+            let active = false;
+            layersConfig.forEach(l => {
+                if(activeLayers[l.id] && layerLegendData[l.id]) {
+                    active = true;
+                    let html = `<div class='mb-4'><p class='font-bold text-emerald-400 border-b border-gray-700'>${l.label}</p>`;
+                    for(let val in layerLegendData[l.id]) {
+                        html += `<div class='flex items-center gap-2 mt-1'><span class='w-3 h-3 rounded' style='background:${layerLegendData[l.id][val]}'></span>${val}</div>`;
+                    }
+                    container.innerHTML += html + '</div>';
+                }
+            });
+            if(!active) container.innerHTML = '<p class="text-gray-500 italic">Pilih layer untuk melihat legenda.</p>';
+        }
 
+        layersConfig.forEach(muatKmz);
     </script>
 </body>
 </html>
