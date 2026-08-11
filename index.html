@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (KMZ Styles & Download)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Auto Palette Engine)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v1.6 (Dynamic KMZ Engine)
+            Sistem Informasi Geografis v1.7 (Auto Palette Engine)
         </div>
     </header>
 
@@ -185,7 +185,6 @@
             if (feature.properties) {
                 let content = "<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ Informasi Atribut</h3><table class='text-xs w-full'>";
                 
-                // Fields bawaan KML styling/sistem yang tidak perlu tampil di popup
                 const hiddenFields = ['styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility', 'altitudeMode', 
                                       'tessellate', 'extrude', 'drawOrder', 'icon', 'snippet', 'fill-opacity', 
                                       'stroke-opacity', 'stroke-width', 'description'];
@@ -201,7 +200,16 @@
             }
         }
 
-        // --- ENGINE BACA WARNA DARI KMZ DAN EKSTRAKSI LEGENDA ---
+        // --- PALET WARNA KONTRAST TINGGI ---
+        const paletWarna = [
+            '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', 
+            '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
+            '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', 
+            '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080',
+            '#14b8a6', '#f43f5e', '#84cc16', '#06b6d4', '#d946ef'
+        ];
+
+        // --- ENGINE BACA KATEGORI DAN OTOMATISASI WARNA ---
         const kmzLegendData = {}; 
         const activeLayersForLegend = {};
 
@@ -212,35 +220,39 @@
                 if (subLayer.feature && subLayer.feature.properties) {
                     const p = subLayer.feature.properties;
                     
-                    // Ambil warna bawaan KMZ (hasil parse toGeoJSON biasanya disimpan di 'fill' dan 'stroke')
-                    const fillColor = p.fill || p.fillColor || '#10b981';
-                    const strokeColor = p.stroke || p.color || '#ffffff';
-                    const fillOpacity = p['fill-opacity'] !== undefined ? p['fill-opacity'] : 0.8;
-                    const strokeWidth = p['stroke-width'] || 1.2;
-
-                    // Terapkan warna dari KMZ ke dalam poligon Leaflet
-                    if (typeof subLayer.setStyle === 'function') {
-                        subLayer.setStyle({
-                            fillColor: fillColor,
-                            color: strokeColor,
-                            weight: strokeWidth,
-                            fillOpacity: fillOpacity
-                        });
-                    }
-
-                    // Deteksi nama kategori untuk legenda dinamis (prioritas: REMARK -> NAMOBJ -> name -> Text Fields)
-                    let label = p.REMARK || p.NAMOBJ || p.name || p.Name || p.TEKSTUR || p.EROSI || p.DRAINS || p.KDEFEK || p.PENGGUNAAN;
+                    // 1. Tentukan Nama Kategori dari Atribut
+                    let label = p.REMARK || p.NAMOBJ || p.name || p.Name || p.TEKSTUR || p.EROSI || p.DRAINS || p.KDEFEK || p.PENGGUNAAN || p.penggunaan;
                     if (!label || label.toString().trim() === "") {
                         label = "Lain-lain / Area";
                     }
                     
-                    // Simpan data unik ke variabel legend
                     const key = label.toString().trim().toLowerCase();
-                    if (!kmzLegendData[idLayer][key] && Object.keys(kmzLegendData[idLayer]).length < 30) {
+                    
+                    // 2. Berikan Warna Berbeda Untuk Setiap Kategori
+                    let fillColor;
+                    if (kmzLegendData[idLayer][key]) {
+                        // Jika kategori sudah ada warnanya, gunakan ulang
+                        fillColor = kmzLegendData[idLayer][key].color;
+                    } else {
+                        // Jika kategori baru, ambil warna dari palet berdasarkan jumlah kategori yang sudah ada
+                        const jumlahKategori = Object.keys(kmzLegendData[idLayer]).length;
+                        fillColor = paletWarna[jumlahKategori % paletWarna.length];
+                        
+                        // Simpan ke legend data
                         kmzLegendData[idLayer][key] = {
                             label: label.toString().trim(),
                             color: fillColor
                         };
+                    }
+
+                    // 3. Terapkan Style ke Poligon
+                    if (typeof subLayer.setStyle === 'function') {
+                        subLayer.setStyle({
+                            fillColor: fillColor,
+                            color: '#ffffff',
+                            weight: 1.0,
+                            fillOpacity: 0.8
+                        });
                     }
                 }
 
