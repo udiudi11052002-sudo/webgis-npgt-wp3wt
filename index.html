@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Global Scanner Engine)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Exact Field Mapper)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.0 (Global Keyword Scanner)
+            Sistem Informasi Geografis v2.1 (Exact Field Mapper)
         </div>
     </header>
 
@@ -208,7 +208,7 @@
             '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
         ];
 
-        // --- GLOBAL KEYWORD SCANNER ENGINE ---
+        // --- EXACT FIELD MAPPING ENGINE ---
         const kmzLegendData = {}; 
         const activeLayersForLegend = {};
 
@@ -221,106 +221,134 @@
                     let label = "";
                     let fillColor = "#808080"; 
 
-                    // 1. Ekstrak seluruh nilai dari poligon untuk dicari (Full Text Search)
-                    const allVals = [];
-                    for (let k in p) {
-                        if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility', 'altitudeMode', 'tessellate', 'extrude', 'drawOrder', 'icon', 'snippet', 'fill-opacity', 'stroke-opacity', 'stroke-width', 'description'].includes(k)) {
-                            if (p[k] !== null && p[k] !== undefined) {
-                                allVals.push(String(p[k]).toLowerCase().trim());
-                            }
-                        }
-                    }
-
-                    // Fungsi pembantu untuk mengecek kecocokan teks
-                    const hasTerm = (terms) => allVals.some(v => terms.some(t => v.includes(t)));
-                    
-                    // Fungsi pembantu mencari exact match (khusus untuk kode ID NPGT seperti "1", "2", "e1", "b")
-                    const getTargetFieldVal = (fieldNames) => {
+                    // Fungsi untuk mencari nilai secara fleksibel (mengabaikan kapitalisasi huruf pada nama field)
+                    const getValByField = (targetField) => {
                         for (let k in p) {
-                            if (fieldNames.map(f => f.toLowerCase()).includes(k.toLowerCase()) && p[k] != null) {
-                                return String(p[k]).toLowerCase().trim();
+                            if (k.toLowerCase() === targetField.toLowerCase() && p[k] !== null && p[k] !== undefined) {
+                                return String(p[k]).trim();
                             }
                         }
                         return "";
                     };
 
-                    // --- LAYER 1: PENGGUNAAN TANAH ---
+                    // --- LAYER 1: PENGGUNAAN TANAH (FIELD: PENGGUNAAN / REMARK) ---
                     if (idLayer === 'layer1') {
-                        let rawVal = "";
-                        for(let f of ['PENGGUNAAN', 'penggunaan', 'REMARK', 'NAMOBJ', 'Name', 'name']) {
-                            if(p[f] !== undefined && p[f] !== null && String(p[f]).trim() !== "") { rawVal = String(p[f]).trim(); break; }
-                        }
-                        if (!rawVal || !isNaN(rawVal)) {
-                            for(let v of allVals) { if(isNaN(v) && v.length > 2) { rawVal = v; break; } }
-                        }
+                        let rawVal = getValByField('PENGGUNAAN') || getValByField('REMARK') || getValByField('NAMOBJ') || getValByField('Name');
                         if (!rawVal || !isNaN(rawVal)) rawVal = "Area Lainnya";
                         
-                        label = rawVal.replace(/\w/g, l => l.toUpperCase());
+                        label = rawVal;
                         let key = label.toLowerCase();
                         
-                        if (kmzLegendData[idLayer][key]) fillColor = kmzLegendData[idLayer][key].color;
-                        else fillColor = paletWarna[Object.keys(kmzLegendData[idLayer]).length % paletWarna.length];
+                        if (kmzLegendData[idLayer][key]) {
+                            fillColor = kmzLegendData[idLayer][key].color;
+                        } else {
+                            fillColor = paletWarna[Object.keys(kmzLegendData[idLayer]).length % paletWarna.length];
+                        }
                     } 
                     
                     // --- LAYER 2: KETERSEDIAAN TANAH ---
                     else if (idLayer === 'layer2') {
-                        if (hasTerm(['tidak tersedia'])) { label = 'Tidak Tersedia'; fillColor = '#ef4444'; }
-                        else if (hasTerm(['terbatas'])) { label = 'Terbatas'; fillColor = '#f59e0b'; }
-                        else if (hasTerm(['tersedia'])) { label = 'Tersedia'; fillColor = '#10b981'; }
-                        else { label = 'Tidak Terdefinisi'; fillColor = '#808080'; }
+                        let rawVal = (getValByField('KETERSEDIAAN') || getValByField('REMARK') || getValByField('NAMOBJ')).toLowerCase();
+                        if (rawVal.includes('tidak')) { label = 'Tidak Tersedia'; fillColor = '#ef4444'; }
+                        else if (rawVal.includes('terbatas')) { label = 'Terbatas'; fillColor = '#f59e0b'; }
+                        else { label = 'Tersedia'; fillColor = '#10b981'; }
                     } 
                     
-                    // --- LAYER 3: KESESUAIAN RENCANA POLA RUANG ---
+                    // --- LAYER 3: KESESUAIAN RENCANA POLA RUANG (FIELD TARGET: KSPOLA) ---
                     else if (idLayer === 'layer3') {
-                        if (hasTerm(['tidak sesuai'])) { label = 'Tidak Sesuai'; fillColor = '#ef4444'; }
-                        else if (hasTerm(['bersyarat'])) { label = 'Sesuai Bersyarat'; fillColor = '#f59e0b'; }
-                        else if (hasTerm(['sesuai'])) { label = 'Sesuai'; fillColor = '#10b981'; }
-                        else { label = 'Tidak Terdefinisi'; fillColor = '#808080'; }
+                        let rawVal = getValByField('KSPOLA').toLowerCase();
+                        if (rawVal === '') {
+                            // Fallback jika field KSPOLA tidak ditemukan, cek field umum
+                            rawVal = (getValByField('KESESUAIAN') || getValByField('STATUS') || getValByField('REMARK')).toLowerCase();
+                        }
+
+                        if (rawVal.includes('tidak') || rawVal.includes('ts')) { 
+                            label = 'Tidak Sesuai'; fillColor = '#ef4444'; // Merah
+                        } else if (rawVal.includes('bersyarat')) { 
+                            label = 'Sesuai Bersyarat'; fillColor = '#f59e0b'; // Kuning
+                        } else { 
+                            label = rawVal ? rawVal.replace(/\w/g, l => l.toUpperCase()) : 'Sesuai'; 
+                            fillColor = '#10b981'; // Hijau
+                        }
                     } 
                     
-                    // --- LAYER 4: TEKSTUR TANAH ---
+                    // --- LAYER 4: TEKSTUR TANAH (FIELD TARGET: TEKSTUR) ---
                     else if (idLayer === 'layer4') {
-                        let val = getTargetFieldVal(['TEKSTUR', 'KELAS_TEKS']);
-                        if (hasTerm(['agak halus']) || val === '2') { label = 'Agak Halus'; fillColor = '#91cf60'; }
-                        else if (hasTerm(['halus']) || val === '1') { label = 'Halus'; fillColor = '#1a9850'; }
-                        else if (hasTerm(['agak kasar']) || val === '4') { label = 'Agak Kasar'; fillColor = '#fc8d59'; }
-                        else if (hasTerm(['kasar']) || val === '5') { label = 'Kasar'; fillColor = '#d73027'; }
-                        else if (hasTerm(['sedang']) || val === '3') { label = 'Sedang'; fillColor = '#d9ef8b'; }
-                        else { label = 'Tidak Terdefinisi'; fillColor = '#808080'; }
+                        let rawVal = getValByField('TEKSTUR').toLowerCase();
+                        if (rawVal === '') rawVal = getValByField('KELAS_TEKS').toLowerCase();
+
+                        if (rawVal === '1' || rawVal.includes('halus') && !rawVal.includes('agak')) { 
+                            label = 'Halus'; fillColor = '#1a9850'; 
+                        } else if (rawVal === '2' || rawVal.includes('agak halus')) { 
+                            label = 'Agak Halus'; fillColor = '#91cf60'; 
+                        } else if (rawVal === '3' || rawVal.includes('sedang')) { 
+                            label = 'Sedang'; fillColor = '#d9ef8b'; 
+                        } else if (rawVal === '4' || rawVal.includes('agak kasar')) { 
+                            label = 'Agak Kasar'; fillColor = '#fc8d59'; 
+                        } else if (rawVal === '5' || rawVal.includes('kasar')) { 
+                            label = 'Kasar'; fillColor = '#d73027'; 
+                        } else { 
+                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
                     } 
                     
-                    // --- LAYER 5: KEDALAMAN EFEKTIF ---
+                    // --- LAYER 5: KEDALAMAN EFEKTIF (FIELD TARGET: KDEFEK) ---
                     else if (idLayer === 'layer5') {
-                        let val = getTargetFieldVal(['KDEFEK', 'KEDALAMAN']);
-                        if (hasTerm(['90 - 150', '90-150', '90cm', '90 cm']) || val === 'b') { label = '90 - 150 cm'; fillColor = '#1a9850'; }
-                        else if (hasTerm(['75 - 90', '75-90', '75cm', '75 cm']) || val === 'c') { label = '75 - 90 cm'; fillColor = '#91cf60'; }
-                        else if (hasTerm(['60 - 75', '60-75', '60cm', '60 cm']) || val === 'd') { label = '60 - 75 cm'; fillColor = '#d9ef8b'; }
-                        else if (hasTerm(['50 - 60', '50-60', '50cm', '50 cm']) || val === 'e') { label = '50 - 60 cm'; fillColor = '#fc8d59'; }
-                        else if (hasTerm(['30 - 50', '30-50', '30cm', '30 cm']) || val === 'f') { label = '30 - 50 cm'; fillColor = '#d73027'; }
-                        else { label = 'Tidak Terdefinisi'; fillColor = '#808080'; }
+                        let rawVal = getValByField('KDEFEK').toLowerCase();
+                        if (rawVal === '') rawVal = getValByField('KEDALAMAN').toLowerCase();
+
+                        if (rawVal === 'b' || rawVal.includes('90')) { 
+                            label = '90 - 150 cm'; fillColor = '#1a9850'; 
+                        } else if (rawVal === 'c' || rawVal.includes('75')) { 
+                            label = '75 - 90 cm'; fillColor = '#91cf60'; 
+                        } else if (rawVal === 'd' || rawVal.includes('60')) { 
+                            label = '60 - 75 cm'; fillColor = '#d9ef8b'; 
+                        } else if (rawVal === 'e' || rawVal.includes('50')) { 
+                            label = '50 - 60 cm'; fillColor = '#fc8d59'; 
+                        } else if (rawVal === 'f' || rawVal.includes('30')) { 
+                            label = '30 - 50 cm'; fillColor = '#d73027'; 
+                        } else { 
+                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
                     } 
                     
-                    // --- LAYER 6: TINGKAT EROSI ---
+                    // --- LAYER 6: TINGKAT EROSI (FIELD TARGET: EROSI) ---
                     else if (idLayer === 'layer6') {
-                        let val = getTargetFieldVal(['EROSI', 'TGKT_EROSI']);
-                        if (hasTerm(['sangat berat']) || val === 'e4' || val === '4') { label = 'Erosi Sangat Berat'; fillColor = '#d73027'; }
-                        else if (hasTerm(['berat']) || val === 'e3' || val === '3') { label = 'Erosi Berat'; fillColor = '#fc8d59'; }
-                        else if (hasTerm(['sedang']) || val === 'e2' || val === '2') { label = 'Erosi Sedang'; fillColor = '#d9ef8b'; }
-                        else if (hasTerm(['ringan']) || val === 'e1' || val === '1') { label = 'Erosi Ringan'; fillColor = '#91cf60'; }
-                        else if (hasTerm(['tidak ada', 'tidak ada erosi']) || val === 't' || val === '0') { label = 'Tidak Ada Erosi'; fillColor = '#1a9850'; }
-                        else { label = 'Tidak Terdefinisi'; fillColor = '#808080'; }
+                        let rawVal = getValByField('EROSI').toLowerCase();
+                        if (rawVal === '') rawVal = getValByField('TGKT_EROSI').toLowerCase();
+
+                        if (rawVal === 'e4' || rawVal.includes('sangat berat')) { 
+                            label = 'Erosi Sangat Berat'; fillColor = '#d73027'; 
+                        } else if (rawVal === 'e3' || (rawVal.includes('berat') && !rawVal.includes('sangat'))) { 
+                            label = 'Erosi Berat'; fillColor = '#fc8d59'; 
+                        } else if (rawVal === 'e2' || rawVal.includes('sedang')) { 
+                            label = 'Erosi Sedang'; fillColor = '#d9ef8b'; 
+                        } else if (rawVal === 'e1' || rawVal.includes('ringan')) { 
+                            label = 'Erosi Ringan'; fillColor = '#91cf60'; 
+                        } else if (rawVal === 't' || rawVal.includes('tidak')) { 
+                            label = 'Tidak Ada Erosi'; fillColor = '#1a9850'; 
+                        } else { 
+                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
                     } 
                     
-                    // --- LAYER 7: TINGKAT DRAINASE ---
+                    // --- LAYER 7: TINGKAT DRAINASE (FIELD TARGET: DRAINS) ---
                     else if (idLayer === 'layer7') {
-                        let val = getTargetFieldVal(['DRAINS', 'DRAINASE']);
-                        if (hasTerm(['terus menerus']) || val === 'd') { label = 'Tergenang Terus Menerus'; fillColor = '#d73027'; }
-                        else if (hasTerm(['periodik']) || val === 'c') { label = 'Tergenang Periodik'; fillColor = '#d9ef8b'; }
-                        else if (hasTerm(['tidak pernah', 'tidak tergenang']) || val === 'b') { label = 'Tidak Pernah Tergenang'; fillColor = '#1a9850'; }
-                        else { label = 'Tidak Terdefinisi'; fillColor = '#808080'; }
+                        let rawVal = getValByField('DRAINS').toLowerCase();
+                        if (rawVal === '') rawVal = getValByField('DRAINASE').toLowerCase();
+
+                        if (rawVal === 'd' || rawVal.includes('terus')) { 
+                            label = 'Tergenang Terus Menerus'; fillColor = '#d73027'; 
+                        } else if (rawVal === 'c' || rawVal.includes('periodik')) { 
+                            label = 'Tergenang Periodik'; fillColor = '#d9ef8b'; 
+                        } else if (rawVal === 'b' || rawVal.includes('tidak')) { 
+                            label = 'Tidak Pernah Tergenang'; fillColor = '#1a9850'; 
+                        } else { 
+                            label = rawVal ? rawVal.toUpperCase() : 'Tidak Terdefinisi'; fillColor = '#808080'; 
+                        }
                     }
 
-                    // 2. Simpan dan aplikasikan data jika dikenali
+                    // 2. Simpan ke kamus legenda
                     let key = label.toLowerCase();
                     if (key !== 'tidak terdefinisi' && key !== "") {
                         kmzLegendData[idLayer][key] = {
@@ -329,6 +357,7 @@
                         };
                     }
 
+                    // 3. Terapkan warna ke poligon Leaflet
                     if (typeof subLayer.setStyle === 'function') {
                         subLayer.setStyle({
                             fillColor: fillColor,
@@ -345,14 +374,14 @@
             });
         }
 
-        // --- UPDATE PANEL BOX LEGENDA BERDASARKAN WARNA KMZ ---
+        // --- UPDATE PANEL BOX LEGENDA ---
         function perbaruiHtmlLegenda() {
             const container = document.getElementById('dynamicLegend');
             container.innerHTML = '';
             let adaLayerAktif = false;
             
             const susunanJudul = {
-                'layer1': 'Penggunaan Tanah', 'layer2': 'Ketersediaan Tanah', 'layer3': 'Kesesuaian Rencana Tata Ruang',
+                'layer1': 'Penggunaan Tanah', 'layer2': 'Ketersediaan Tanah', 'layer3': 'Kesesuaian Rencana Pola Ruang',
                 'layer4': 'Tekstur Tanah', 'layer5': 'Kedalaman Efektif', 
                 'layer6': 'Tingkat Erosi', 'layer7': 'Tingkat Drainase'
             };
@@ -382,7 +411,6 @@
                              return idxA - idxB;
                          });
                     } else {
-                         // Alfabetis untuk Penggunaan, Kesesuaian, Ketersediaan
                          itemsArray.sort((a, b) => a.label.localeCompare(b.label));
                     }
                     
@@ -395,7 +423,7 @@
                     }
                     
                     if(count === 0) {
-                        htmlGrup += `<p class="text-gray-500 text-[11px]">Gagal memuat kategori dari file KMZ (Data Kosong/Tidak Dikenali).</p>`;
+                        htmlGrup += `<p class="text-gray-500 text-[11px]">Gagal memuat kategori dari file KMZ (Field atribut tidak cocok).</p>`;
                     }
                     
                     htmlGrup += `</div></div>`;
@@ -423,7 +451,6 @@
                 const parser = new DOMParser();
                 const kmlDoc = parser.parseFromString(kmlText, "text/xml");
                 
-                // Parse KML tanpa warna awal
                 const layerGeospasial = omnivore.kml.parse(kmlDoc, null, L.geoJson(null, {
                     onEachFeature: customPopup
                 }));
@@ -434,7 +461,6 @@
 
                 loadedLayers[idLayer] = layerGeospasial;
 
-                // Event listener checkbox kontrol lapisan
                 document.getElementById(idLayer).addEventListener('change', function (e) {
                     if (e.target.checked) {
                         loadedLayers[idLayer].addTo(map);
