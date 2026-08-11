@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Native KML Styling Engine)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Direct KMZ/KML Parser)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.3 (Native KML Style Renderer)
+            Sistem Informasi Geografis v2.4 (Direct KML Renderer)
         </div>
     </header>
 
@@ -40,7 +40,7 @@
             <div class="p-5 overflow-y-auto flex-1 mt-12 md:mt-0 space-y-6">
                 <div>
                     <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2"><span></span> DATA SPASIAL</h2>
-                    <p class="text-[11px] text-gray-500 mt-1">Menggunakan Styling Asli KML (Sama persis dengan Google Earth).</p>
+                    <p class="text-[11px] text-gray-500 mt-1">Sesuai nama file KMZ asli.</p>
                 </div>
 
                 <div class="space-y-2.5" id="layerControls">
@@ -65,14 +65,15 @@
     <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
 
     <script>
+        // Sesuai persis dengan nama file di folder data/ yang Anda tunjukkan
         const layersConfig = [
-            { id: 'layer1', label: 'Penggunaan Tanah', field: 'PENGGUNAAN' },
-            { id: 'layer2', label: 'Ketersediaan Tanah', field: 'KETERSEDIAAN' },
-            { id: 'layer3', label: 'Kesesuaian Rencana Pola Ruang', field: 'KSPOLA' },
-            { id: 'layer4', label: 'Tekstur Tanah', field: 'TEKSTUR' },
-            { id: 'layer5', label: 'Kedalaman Efektif', field: 'KDEFEK' },
-            { id: 'layer6', label: 'Tingkat Erosi', field: 'EROSI' },
-            { id: 'layer7', label: 'Tingkat Drainase', field: 'DRAINS' }
+            { id: 'kedalaman_efektif', label: 'Kedalaman Efektif', field: 'KDEFEK' },
+            { id: 'kesesuaian_rtrw', label: 'Kesesuaian Rencana Pola Ruang', field: 'KSPOLA' },
+            { id: 'ketersediaan_tanah', label: 'Ketersediaan Tanah', field: 'KETERSEDIAAN' },
+            { id: 'penggunaan_tanah', label: 'Penggunaan Tanah', field: 'PENGGUNAAN' },
+            { id: 'tekstur_tanah', label: 'Tekstur Tanah', field: 'TEKSTUR' },
+            { id: 'tingkat_drainase', label: 'Tingkat Drainase', field: 'DRAINS' },
+            { id: 'tingkat_erosi', label: 'Tingkat Erosi', field: 'EROSI' }
         ];
 
         const map = L.map('map', { zoomControl: false }).setView([0.5435, 121.9324], 11);
@@ -89,7 +90,7 @@
         const activeLayers = {};
         const layerLegends = {};
 
-        // Render Sidebar Controls
+        // Render Sidebar Controls sesuai nama file yang benar
         const controlContainer = document.getElementById('layerControls');
         layersConfig.forEach(cfg => {
             controlContainer.innerHTML += `
@@ -105,7 +106,7 @@
             `;
         });
 
-        // Helper to convert KML aabbggrr color to CSS rgba
+        // Konversi warna KML aabbggrr ke CSS rgba
         function kmlColorToCss(kmlColor) {
             if (!kmlColor || kmlColor.length !== 8) return { color: '#3388ff', opacity: 0.8 };
             let aHex = kmlColor.substring(0, 2);
@@ -131,7 +132,7 @@
                 const parser = new DOMParser();
                 const kmlDoc = parser.parseFromString(kmlText, "text/xml");
 
-                // Parse KML Styles (<Style id="...">)
+                // Parse Style Map KML
                 const styleMap = {};
                 const styles = kmlDoc.getElementsByTagName('Style');
                 for (let s of styles) {
@@ -162,7 +163,6 @@
                     };
                 }
 
-                // Parse using Omnivore
                 const geoLayer = omnivore.kml.parse(kmlDoc, null, L.geoJson(null, {
                     style: function(feature) {
                         let sUrl = feature.properties.styleUrl;
@@ -176,11 +176,9 @@
                         let p = feature.properties;
                         let content = `<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ ${cfg.label}</h3><table class='text-xs w-full'>`;
                         
-                        let targetVal = "";
                         for (let k in p) {
                             if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility', 'tessellate', 'extrude'].includes(k)) {
                                 let val = p[k] || "-";
-                                if (k.toLowerCase() === cfg.field.toLowerCase()) targetVal = String(val);
                                 content += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${k}</td><td class='text-gray-800'>: ${val}</td></tr>`;
                             }
                         }
@@ -189,7 +187,7 @@
                     }
                 }));
 
-                // Collect Legend items based on actual applied styles & attribute values
+                // Kumpulkan data legenda dari nilai atribut sesuai field target
                 const legendItems = {};
                 geoLayer.eachLayer(function(subLayer) {
                     let p = subLayer.feature.properties;
@@ -216,7 +214,6 @@
                 layerLegends[cfg.id] = legendItems;
                 loadedLayers[cfg.id] = geoLayer;
 
-                // Checkbox listener
                 document.getElementById(cfg.id).addEventListener('change', function(e) {
                     if (e.target.checked) {
                         geoLayer.addTo(map);
@@ -251,7 +248,7 @@
                                     <span class='w-3.5 h-3.5 rounded-sm border border-white/30 inline-block shadow-sm' style='background-color:${col}'></span>
                                     <span class='capitalize leading-tight'>${val}</span>
                                  </div>`;
-                    }
+                        }
                     html += `</div></div>`;
                     container.innerHTML += html;
                 }
@@ -262,7 +259,6 @@
             }
         }
 
-        // Initialize all layers
         layersConfig.forEach(initLayer);
     </script>
 </body>
