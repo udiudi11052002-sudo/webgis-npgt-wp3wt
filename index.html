@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Direct KMZ/KML Parser)</title>
+    <title>Web GIS Neraca Penatagunaan Tanah (Robust KMZ Parser)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.4 (Direct KML Renderer)
+            Sistem Informasi Geografis v2.5 (Robust Parser)
         </div>
     </header>
 
@@ -40,7 +40,7 @@
             <div class="p-5 overflow-y-auto flex-1 mt-12 md:mt-0 space-y-6">
                 <div>
                     <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2"><span></span> DATA SPASIAL</h2>
-                    <p class="text-[11px] text-gray-500 mt-1">Sesuai nama file KMZ asli.</p>
+                    <p class="text-[11px] text-gray-500 mt-1">Sistem Render Peta Terpadu.</p>
                 </div>
 
                 <div class="space-y-2.5" id="layerControls">
@@ -65,7 +65,6 @@
     <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
 
     <script>
-        // Sesuai persis dengan nama file di folder data/ yang Anda tunjukkan
         const layersConfig = [
             { id: 'kedalaman_efektif', label: 'Kedalaman Efektif', field: 'KDEFEK' },
             { id: 'kesesuaian_rtrw', label: 'Kesesuaian Rencana Pola Ruang', field: 'KSPOLA' },
@@ -90,7 +89,6 @@
         const activeLayers = {};
         const layerLegends = {};
 
-        // Render Sidebar Controls sesuai nama file yang benar
         const controlContainer = document.getElementById('layerControls');
         layersConfig.forEach(cfg => {
             controlContainer.innerHTML += `
@@ -106,33 +104,34 @@
             `;
         });
 
-        // Konversi warna KML aabbggrr ke CSS rgba
         function kmlColorToCss(kmlColor) {
-            if (!kmlColor || kmlColor.length !== 8) return { color: '#3388ff', opacity: 0.8 };
+            if (!kmlColor || kmlColor.length !== 8) return { color: '#3388ff', opacity: 0.7 };
             let aHex = kmlColor.substring(0, 2);
             let bHex = kmlColor.substring(2, 4);
             let gHex = kmlColor.substring(4, 6);
             let rHex = kmlColor.substring(6, 8);
             
             let alpha = parseInt(aHex, 16) / 255;
-            if (isNaN(alpha)) alpha = 0.8;
+            if (isNaN(alpha)) alpha = 0.7;
             let hexColor = `#${rHex}${gHex}${bHex}`;
             return { color: hexColor, opacity: alpha };
         }
+
+        const paletWarna = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'];
 
         async function initLayer(cfg) {
             try {
                 const response = await fetch(`data/${cfg.id}.kmz`);
                 const blob = await response.blob();
                 const zip = await JSZip.loadAsync(blob);
-                const kmlFileName = Object.keys(zip.files).find(name => name.endsWith('.kml'));
+                const kmlFileName = Object.keys(zip.files).find(name => name.toLowerCase().endsWith('.kml'));
                 if (!kmlFileName) return;
                 
                 const kmlText = await zip.files[kmlFileName].async("string");
                 const parser = new DOMParser();
                 const kmlDoc = parser.parseFromString(kmlText, "text/xml");
 
-                // Parse Style Map KML
+                // Parse KML Styles
                 const styleMap = {};
                 const styles = kmlDoc.getElementsByTagName('Style');
                 for (let s of styles) {
@@ -140,7 +139,7 @@
                     let polyStyle = s.getElementsByTagName('PolyStyle')[0];
                     let lineStyle = s.getElementsByTagName('LineStyle')[0];
                     
-                    let fillStyle = { color: '#3388ff', opacity: 0.7 };
+                    let fillStyle = { color: '', opacity: 0.7 };
                     let strokeStyle = { color: '#ffffff', opacity: 1 };
                     let weight = 1;
 
@@ -168,7 +167,9 @@
                         let sUrl = feature.properties.styleUrl;
                         if (sUrl) {
                             let cleanId = sUrl.replace('#', '');
-                            if (styleMap[cleanId]) return styleMap[cleanId];
+                            if (styleMap[cleanId] && styleMap[cleanId].fillColor) {
+                                return styleMap[cleanId];
+                            }
                         }
                         return { fillColor: '#3388ff', fillOpacity: 0.7, color: '#ffffff', weight: 1 };
                     },
@@ -187,7 +188,8 @@
                     }
                 }));
 
-                // Kumpulkan data legenda dari nilai atribut sesuai field target
+                // Fallback otomatis jika style KML kosong/tidak terbaca
+                let colorIndex = 0;
                 const legendItems = {};
                 geoLayer.eachLayer(function(subLayer) {
                     let p = subLayer.feature.properties;
@@ -198,16 +200,38 @@
                             break;
                         }
                     }
-                    if (!val) val = "Atribut Utama";
+                    if (!val) {
+                        // Ambil field pertama yang valid
+                        for (let k in p) {
+                            if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke'].includes(k) && p[k]) {
+                                val = String(p[k]);
+                                break;
+                            }
+                        }
+                    }
+                    if (!val) val = "Area Utama";
 
                     let sUrl = subLayer.feature.properties.styleUrl;
-                    let color = '#3388ff';
-                    if (sUrl && styleMap[sUrl.replace('#', '')]) {
-                        color = styleMap[sUrl.replace('#', '')].fillColor;
+                    let appliedColor = '';
+                    if (sUrl && styleMap[sUrl.replace('#', '')] && styleMap[sUrl.replace('#', '')].fillColor) {
+                        appliedColor = styleMap[sUrl.replace('#', '')].fillColor;
                     }
 
                     if (!legendItems[val]) {
-                        legendItems[val] = color;
+                        if (!appliedColor) {
+                            appliedColor = paletWarna[colorIndex % paletWarna.length];
+                            colorIndex++;
+                        }
+                        legendItems[val] = appliedColor;
+                    }
+
+                    // Pastikan poligon diberi warna jika style asli tidak ada
+                    if (!appliedColor) {
+                        appliedColor = legendItems[val];
+                    }
+                    
+                    if (typeof subLayer.setStyle === 'function') {
+                        subLayer.setStyle({ fillColor: appliedColor, fillOpacity: 0.75, color: '#ffffff', weight: 1 });
                     }
                 });
 
@@ -217,7 +241,7 @@
                 document.getElementById(cfg.id).addEventListener('change', function(e) {
                     if (e.target.checked) {
                         geoLayer.addTo(map);
-                        map.fitBounds(geoLayer.getBounds());
+                        try { map.fitBounds(geoLayer.getBounds()); } catch(err){}
                         activeLayers[cfg.id] = true;
                         if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full');
                     } else {
@@ -248,7 +272,7 @@
                                     <span class='w-3.5 h-3.5 rounded-sm border border-white/30 inline-block shadow-sm' style='background-color:${col}'></span>
                                     <span class='capitalize leading-tight'>${val}</span>
                                  </div>`;
-                        }
+                    }
                     html += `</div></div>`;
                     container.innerHTML += html;
                 }
