@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.6 (Mobile Fixed)
+            Sistem Informasi Geografis v2.7 (Field Match Fixed)
         </div>
     </header>
 
@@ -67,14 +67,15 @@
     <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
 
     <script>
+        // Konfigurasi layer dengan daftar alias field (fields) untuk mengantisipasi perbedaan penamaan kolom KML/Shapefile
         const layersConfig = [
-            { id: 'kedalaman_efektif', label: 'Kedalaman Efektif', field: 'KDEFEK' },
-            { id: 'kesesuaian_rtrw', label: 'Kesesuaian Rencana Pola Ruang', field: 'KSPOLA' },
-            { id: 'ketersediaan_tanah', label: 'Ketersediaan Tanah', field: 'KETERSEDIAAN' },
-            { id: 'penggunaan_tanah', label: 'Penggunaan Tanah', field: 'PENGGUNAAN' },
-            { id: 'tekstur_tanah', label: 'Tekstur Tanah', field: 'TEKSTUR' },
-            { id: 'tingkat_drainase', label: 'Tingkat Drainase', field: 'DRAINS' },
-            { id: 'tingkat_erosi', label: 'Tingkat Erosi', field: 'EROSI' }
+            { id: 'kedalaman_efektif', label: 'Kedalaman Efektif', fields: ['KDEFEK', 'KEDALAMAN', 'KEDEFEK'] },
+            { id: 'kesesuaian_rtrw', label: 'Kesesuaian Rencana Pola Ruang', fields: ['KSPOLA', 'KESESUAIAN', 'RTRW', 'POLA_RUANG'] },
+            { id: 'ketersediaan_tanah', label: 'Ketersediaan Tanah', fields: ['KETERSEDIAAN', 'KETERSEDIAA', 'KET_TANAH', 'TERSEDIA', 'KETERSEDIAAN_TANAH'] },
+            { id: 'penggunaan_tanah', label: 'Penggunaan Tanah', fields: ['PENGGUNAAN', 'PL', 'GUNA_TANAH', 'PENGGUNAAN_TANAH'] },
+            { id: 'tekstur_tanah', label: 'Tekstur Tanah', fields: ['TEKSTUR', 'TEKSTUR_TANAH'] },
+            { id: 'tingkat_drainase', label: 'Tingkat Drainase', fields: ['DRAINS', 'DRAINASE'] },
+            { id: 'tingkat_erosi', label: 'Tingkat Erosi', fields: ['EROSI', 'TINGKAT_EROSI'] }
         ];
 
         const map = L.map('map', { zoomControl: false }).setView([0.5435, 121.9324], 11);
@@ -87,7 +88,7 @@
         basemaps.Satelit.addTo(map);
         L.control.layers(basemaps, null, { position: 'bottomright' }).addTo(map);
 
-        // --- MOBILE MENU TOGGLE FIX ---
+        // --- MOBILE MENU TOGGLE ---
         const menuBtn = document.getElementById('menuBtn');
         const sidebar = document.getElementById('sidebar');
         const menuIcon = document.getElementById('menuIcon');
@@ -107,7 +108,6 @@
             }
         });
 
-        // Tutup sidebar saat peta diklik di HP
         document.getElementById('map').addEventListener('click', () => {
             if (window.innerWidth < 768) {
                 sidebar.classList.add('-translate-x-full');
@@ -148,7 +148,64 @@
             return { color: hexColor, opacity: alpha };
         }
 
-        const paletWarna = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'];
+        // Ekstraksi atribut dari HTML Description jika KML tidak menyimpan properti GeoJSON secara langsung
+        function extractAttributesFromDescription(htmlStr) {
+            const props = {};
+            if (!htmlStr || typeof htmlStr !== 'string') return props;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlStr, 'text/html');
+            const rows = doc.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                if (cells.length >= 2) {
+                    const key = cells[0].textContent.trim();
+                    const val = cells[1].textContent.trim();
+                    if (key) props[key] = val;
+                }
+            });
+            return props;
+        }
+
+        // Fungsi pembantu mengekstrak nilai atribut utama berdasarkan daftar nama field target
+        function getFeatureAttributeValue(props, targetFields) {
+            if (!props) return "";
+            
+            // 1. Cari berdasarkan daftar field target (Case-Insensitive)
+            for (let target of targetFields) {
+                for (let k in props) {
+                    if (k.toLowerCase() === target.toLowerCase() && props[k] !== undefined && props[k] !== null && String(props[k]).trim() !== "") {
+                        return String(props[k]).trim();
+                    }
+                }
+            }
+
+            // 2. Jika tidak ketemu, cari di properti 'description' jika bertipe HTML
+            if (props.description) {
+                const parsedProps = extractAttributesFromDescription(props.description);
+                for (let target of targetFields) {
+                    for (let k in parsedProps) {
+                        if (k.toLowerCase() === target.toLowerCase() && parsedProps[k]) {
+                            return String(parsedProps[k]).trim();
+                        }
+                    }
+                }
+            }
+
+            // 3. Fallback: Cari field lain yang bernilai non-sistem (mengabaikan metadata default KML/GIS)
+            const ignoredKeys = ['styleurl', 'stylehash', 'id', 'fill', 'stroke', 'visibility', 'tessellate', 'extrude', 'fid', 'objectid', 'shape_length', 'shape_area', 'description', 'name'];
+            for (let k in props) {
+                if (!ignoredKeys.includes(k.toLowerCase()) && props[k] !== undefined && props[k] !== null) {
+                    let valStr = String(props[k]).trim();
+                    if (valStr !== "" && valStr !== "-") {
+                        return valStr;
+                    }
+                }
+            }
+
+            return "";
+        }
+
+        const paletWarna = ['#3cb44b', '#e6194b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'];
 
         async function initLayer(cfg) {
             try {
@@ -207,12 +264,25 @@
                         let p = feature.properties;
                         let content = `<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ ${cfg.label}</h3><table class='text-xs w-full'>`;
                         
+                        // Tampilkan atribut standar
                         for (let k in p) {
                             if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility', 'tessellate', 'extrude'].includes(k)) {
+                                if (k === 'description' && typeof p[k] === 'string' && p[k].includes('<table')) {
+                                    continue; // Lewati deskripsi tabel mentah agar tidak merusak tampilan popup
+                                }
                                 let val = p[k] || "-";
                                 content += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${k}</td><td class='text-gray-800'>: ${val}</td></tr>`;
                             }
                         }
+                        
+                        // Jika ada tabel HTML di description, parsing dan tambahkan ke popup
+                        if (p.description && typeof p.description === 'string' && p.description.includes('<table')) {
+                            const descProps = extractAttributesFromDescription(p.description);
+                            for (let dk in descProps) {
+                                content += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${dk}</td><td class='text-gray-800'>: ${descProps[dk]}</td></tr>`;
+                            }
+                        }
+
                         content += "</table></div>";
                         layer.bindPopup(content);
                     }
@@ -220,34 +290,23 @@
 
                 let colorIndex = 0;
                 const legendItems = {};
+                
                 geoLayer.eachLayer(function(subLayer) {
-                    let p = subLayer.feature.properties;
-                    let val = "";
-                    for (let k in p) {
-                        if (k.toLowerCase() === cfg.field.toLowerCase()) {
-                            val = String(p[k]);
-                            break;
-                        }
-                    }
-                    if (!val) {
-                        for (let k in p) {
-                            if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke'].includes(k) && p[k]) {
-                                val = String(p[k]);
-                                break;
-                            }
-                        }
-                    }
-                    if (!val) val = "Area Utama";
+                    let p = subLayer.feature.properties || {};
+                    let val = getFeatureAttributeValue(p, cfg.fields);
 
-                    let sUrl = subLayer.feature.properties.styleUrl;
+                    if (!val) {
+                        val = "Lainnya / Tidak Ada Data";
+                    }
+
+                    let sUrl = p.styleUrl;
                     let appliedColor = '';
                     
-                    // Ambil warna dari KML Style jika ada dan valid
                     if (sUrl && styleMap[sUrl.replace('#', '')] && styleMap[sUrl.replace('#', '')].fillColor) {
                         appliedColor = styleMap[sUrl.replace('#', '')].fillColor;
                     }
 
-                    // Logika penentuan warna fallback jika KML tidak memiliki warna PolyStyle
+                    // Penentuan warna kategoris konsisten
                     if (!appliedColor) {
                         if (!legendItems[val]) {
                             legendItems[val] = paletWarna[colorIndex % paletWarna.length];
