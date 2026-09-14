@@ -37,7 +37,7 @@
     </button>
 
     <div class="flex h-[calc(100vh-70px)] w-full relative overflow-hidden">
-        <!-- Sidebar: Diperbaiki menggunakan fixed/absolute penuh di mobile dengan z-index tinggi -->
+        <!-- Sidebar -->
         <aside id="sidebar" class="absolute inset-y-0 left-0 w-80 bg-gray-800/95 backdrop-blur-md border-r border-gray-700 flex flex-col justify-between z-[90] shadow-2xl transition-transform duration-300 transform -translate-x-full md:translate-x-0 md:static md:inset-auto">
             <div class="p-5 overflow-y-auto flex-1 mt-16 md:mt-0 space-y-6">
                 <div>
@@ -136,7 +136,7 @@
         });
 
         function kmlColorToCss(kmlColor) {
-            if (!kmlColor || kmlColor.length !== 8) return { color: '#3388ff', opacity: 0.7 };
+            if (!kmlColor || kmlColor.length !== 8) return { color: '', opacity: 0.7 };
             let aHex = kmlColor.substring(0, 2);
             let bHex = kmlColor.substring(2, 4);
             let gHex = kmlColor.substring(4, 6);
@@ -241,24 +241,32 @@
 
                     let sUrl = subLayer.feature.properties.styleUrl;
                     let appliedColor = '';
+                    
+                    // Ambil warna dari KML Style jika ada dan valid
                     if (sUrl && styleMap[sUrl.replace('#', '')] && styleMap[sUrl.replace('#', '')].fillColor) {
                         appliedColor = styleMap[sUrl.replace('#', '')].fillColor;
                     }
 
-                    if (!legendItems[val]) {
-                        if (!appliedColor) {
-                            appliedColor = paletWarna[colorIndex % paletWarna.length];
+                    // Logika penentuan warna fallback jika KML tidak memiliki warna PolyStyle
+                    if (!appliedColor) {
+                        if (!legendItems[val]) {
+                            legendItems[val] = paletWarna[colorIndex % paletWarna.length];
                             colorIndex++;
                         }
-                        legendItems[val] = appliedColor;
+                        appliedColor = legendItems[val];
+                    } else {
+                        if (!legendItems[val]) {
+                            legendItems[val] = appliedColor;
+                        }
                     }
 
-                    if (!appliedColor) {
-                        appliedColor = legendItems[val];
-                    }
-                    
                     if (typeof subLayer.setStyle === 'function') {
-                        subLayer.setStyle({ fillColor: appliedColor, fillOpacity: 0.75, color: '#ffffff', weight: 1 });
+                        subLayer.setStyle({ 
+                            fillColor: appliedColor, 
+                            fillOpacity: 0.75, 
+                            color: '#ffffff', 
+                            weight: 1 
+                        });
                     }
                 });
 
