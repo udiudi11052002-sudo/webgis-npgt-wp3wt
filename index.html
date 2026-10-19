@@ -45,6 +45,16 @@
                     <p class="text-[11px] text-gray-500 mt-1">Aktifkan lapisan untuk menampilkan peta.</p>
                 </div>
 
+                <!-- Tombol Google Drive -->
+                <div>
+                    <a href="https://drive.google.com/drive/folders/1JIBumAy9LF5nS0yoEzPPZfXmF-s7jlSW?usp=sharing" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-xl shadow-lg transition duration-200 border border-emerald-500">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
+                        </svg>
+                        <span>Akses Google Drive Data</span>
+                    </a>
+                </div>
+
                 <div class="space-y-2.5" id="layerControls">
                     <!-- Dynamic Layer Toggles -->
                 </div>
@@ -69,13 +79,12 @@
     <script>
         // Konfigurasi layer dengan daftar alias field (fields) untuk mengantisipasi perbedaan penamaan kolom KML/Shapefile
         const layersConfig = [
-            { id: 'kedalaman_efektif', label: 'Kedalaman Efektif', fields: ['KDEFEK', 'KEDALAMAN', 'KEDEFEK'] },
             { id: 'kesesuaian_rtrw', label: 'Kesesuaian Rencana Pola Ruang', fields: ['KSPOLA', 'KESESUAIAN', 'RTRW', 'POLA_RUANG'] },
             { id: 'ketersediaan_tanah', label: 'Ketersediaan Tanah', fields: ['KETERSEDIAAN', 'KETERSEDIAA', 'KET_TANAH', 'TERSEDIA', 'KETERSEDIAAN_TANAH'] },
             { id: 'penggunaan_tanah', label: 'Penggunaan Tanah', fields: ['PENGGUNAAN', 'PL', 'GUNA_TANAH', 'PENGGUNAAN_TANAH'] },
-            { id: 'tekstur_tanah', label: 'Tekstur Tanah', fields: ['TEKSTUR', 'TEKSTUR_TANAH'] },
-            { id: 'tingkat_drainase', label: 'Tingkat Drainase', fields: ['DRAINS', 'DRAINASE'] },
-            { id: 'tingkat_erosi', label: 'Tingkat Erosi', fields: ['EROSI', 'TINGKAT_EROSI'] }
+            { id: 'arahan_ketersediaan_tanah', label: 'Arahan Ketersediaan Tanah', fields: ['ARAHAN', 'KETERSEDIAAN', 'ARAHAN_KETERSEDIAAN_TANAH'] },
+            { id: 'arahan_khusus', label: 'Arahan Khusus', fields: ['ARAHAN', 'KHUSUS', 'ARAHAN_KHUSUS'] },
+            { id: 'rekomendasi_akhir', label: 'Rekomendasi Akhir', fields: ['REKOMENDASI', 'AKHIR', 'REKOMENDASI_AKHIR'] }
         ];
 
         const map = L.map('map', { zoomControl: false }).setView([0.5435, 121.9324], 11);
