@@ -3,73 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web GIS Neraca Penatagunaan Tanah (Mobile Sidebar Fix)</title>
+    <title>Web GIS Interaktif Neraca Penatagunaan Tanah</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
-        #map { height: calc(100vh - 70px); width: 100%; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        #map { height: calc(100vh - 72px); width: 100%; }
+
+        /* Custom Styling Leaflet Popup Dark Mode */
+        .leaflet-popup-content-wrapper {
+            background: #1f2937 !important;
+            color: #f3f4f6 !important;
+            border: 1px solid #374151;
+            border-radius: 16px !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+            padding: 4px !important;
+        }
+        .leaflet-popup-tip { background: #1f2937 !important; }
+        .leaflet-popup-close-button { color: #9ca3af !important; padding: 8px !important; }
+        .leaflet-popup-close-button:hover { color: #ffffff !important; }
+
+        /* Custom Leaflet Control Buttons */
+        .leaflet-touch .leaflet-bar { border: 1px solid #374151 !important; border-radius: 12px !important; overflow: hidden; }
+        .leaflet-touch .leaflet-bar a { background-color: #1f2937 !important; color: #10b981 !important; border-bottom: 1px solid #374151 !important; }
+        .leaflet-touch .leaflet-bar a:hover { background-color: #374151 !important; color: #34d399 !important; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 font-sans overflow-hidden">
+<body class="bg-gray-950 text-gray-100 font-sans overflow-hidden antialiased">
 
-    <header class="bg-gray-800 border-b border-gray-700 h-[70px] flex items-center justify-between px-4 md:px-6 shadow-lg z-50 relative">
-        <div class="flex items-center space-x-3 md:space-x-4 pl-12 md:pl-0">
-            <img src="logo-bpn.png" alt="Logo ATR/BPN" class="h-10 md:h-12 w-auto object-contain" onerror="this.src='https://via.placeholder.com/50?text=BPN'">
+    <!-- Header / Navbar -->
+    <header class="bg-gray-900/90 backdrop-blur-xl border-b border-gray-800/80 h-[72px] flex items-center justify-between px-4 md:px-6 shadow-2xl z-50 relative">
+        <div class="flex items-center space-x-3.5 pl-12 md:pl-0">
+            <div class="p-1.5 bg-gray-800/80 rounded-xl border border-gray-700/50 shadow-inner">
+                <img src="logo-bpn.png" alt="Logo ATR/BPN" class="h-8 md:h-10 w-auto object-contain" onerror="this.src='https://via.placeholder.com/50?text=BPN'">
+            </div>
             <div>
-                <h1 class="text-base md:text-lg font-bold tracking-wide text-emerald-400 leading-tight">WEBGIS INTERAKTIF NPGT</h1>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-sm md:text-base font-bold tracking-wide text-emerald-400 leading-tight">WEBGIS INTERAKTIF NPGT</h1>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live
+                    </span>
+                </div>
                 <p class="text-[10px] md:text-xs text-gray-400">Neraca Penatagunaan Tanah Kecamatan WP3WT</p>
             </div>
         </div>
-        <div class="hidden sm:block text-xs bg-gray-700 px-3 py-1.5 rounded-md border border-gray-600 text-gray-300">
-            Sistem Informasi Geografis v2.7 (Field Match Fixed)
+
+        <div class="hidden sm:flex items-center gap-3 text-xs bg-gray-800/80 px-3.5 py-2 rounded-xl border border-gray-700/60 text-gray-300 shadow-sm backdrop-blur-md">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            <span>KANWIL BPN PROVINSI GORONTALO</span>
         </div>
     </header>
 
-    <!-- Tombol Hamburger Menu Mobile -->
-    <button id="menuBtn" class="absolute top-[15px] left-4 z-[100] bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-xl border border-emerald-500 shadow-2xl flex items-center justify-center transition-all duration-300 focus:outline-none md:hidden">
-        <svg id="menuIcon" class="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        <svg id="closeIcon" class="w-6 h-6 hidden pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <!-- Tombol Mobile Menu -->
+    <button id="menuBtn" class="absolute top-[15px] left-3.5 z-[100] bg-gray-800 hover:bg-gray-700 text-emerald-400 p-2.5 rounded-xl border border-gray-700 shadow-2xl flex items-center justify-center transition-all duration-300 active:scale-95 md:hidden">
+        <svg id="menuIcon" class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        <svg id="closeIcon" class="w-5 h-5 hidden pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
     </button>
 
-    <div class="flex h-[calc(100vh-70px)] w-full relative overflow-hidden">
+    <div class="flex h-[calc(100vh-72px)] w-full relative overflow-hidden">
         <!-- Sidebar -->
-        <aside id="sidebar" class="absolute inset-y-0 left-0 w-80 bg-gray-800/95 backdrop-blur-md border-r border-gray-700 flex flex-col justify-between z-[90] shadow-2xl transition-transform duration-300 transform -translate-x-full md:translate-x-0 md:static md:inset-auto">
-            <div class="p-5 overflow-y-auto flex-1 mt-16 md:mt-0 space-y-6">
-                <div>
-                    <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2"><span></span> DATA SPASIAL</h2>
-                    <p class="text-[11px] text-gray-500 mt-1">Aktifkan lapisan untuk menampilkan peta.</p>
+        <aside id="sidebar" class="absolute inset-y-0 left-0 w-80 bg-gray-900/95 backdrop-blur-2xl border-r border-gray-800/80 flex flex-col justify-between z-[90] shadow-2xl transition-transform duration-300 transform -translate-x-full md:translate-x-0 md:static md:inset-auto">
+            <div class="p-5 overflow-y-auto flex-1 mt-14 md:mt-0 space-y-5">
+                
+                <!-- Google Drive Link Card -->
+                <a href="https://drive.google.com/drive/folders/1JIBumAy9LF5nS0yoEzPPZfXmF-s7jlSW?usp=sharing" target="_blank" rel="noopener noreferrer" class="group relative flex items-center justify-between p-3.5 bg-gradient-to-r from-emerald-600/20 to-teal-600/10 hover:from-emerald-600/30 hover:to-teal-600/20 border border-emerald-500/30 hover:border-emerald-500/60 rounded-2xl shadow-lg transition-all duration-300">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-emerald-500/20 group-hover:bg-emerald-500/30 text-emerald-400 rounded-xl transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 001-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold text-gray-100 group-hover:text-emerald-300 transition-colors">Akses Google Drive Data</h3>
+                            <p class="text-[10px] text-gray-400">Unduh arsip spasial & dokumen</p>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-emerald-400 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                </a>
+
+                <!-- Layer List Section Header -->
+                <div class="pt-2">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            LAPISAN SPASIAL
+                        </h2>
+                    </div>
+                    <p class="text-[11px] text-gray-500">Pilih lapisan data untuk ditampilkan pada peta interaktif.</p>
                 </div>
 
-                <!-- Tombol Google Drive -->
-                <div>
-                    <a href="https://drive.google.com/drive/folders/1JIBumAy9LF5nS0yoEzPPZfXmF-s7jlSW?usp=sharing" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-xl shadow-lg transition duration-200 border border-emerald-500">
-                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
-                        </svg>
-                        <span>Akses Google Drive Data</span>
-                    </a>
-                </div>
-
-                <div class="space-y-2.5" id="layerControls">
+                <div class="space-y-2" id="layerControls">
                     <!-- Dynamic Layer Toggles -->
                 </div>
 
-                <div class="border-t border-gray-700/60 pt-4">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5"><span></span> KELAS ATRIBUT AKTIF</h3>
-                    <div id="dynamicLegend" class="text-xs space-y-4 text-gray-300 bg-gray-900/50 p-3 rounded-xl border border-gray-700/40 max-h-[240px] overflow-y-auto">
-                        <p class="text-gray-500 italic">Aktifkan layer untuk melihat legenda.</p>
+                <!-- Dynamic Legend Card -->
+                <div class="border-t border-gray-800/80 pt-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 73v2a2 2 0 002 2h4a2 2 0 002-2V7a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01"></path></svg>
+                        LEGENDA ATRIBUT
+                    </h3>
+                    <div id="dynamicLegend" class="text-xs space-y-3 text-gray-300 bg-gray-950/60 p-3.5 rounded-2xl border border-gray-800/80 max-h-[220px] overflow-y-auto shadow-inner">
+                        <p class="text-gray-500 italic text-center py-2 text-[11px]">Aktifkan salah satu layer untuk melihat legenda atribut.</p>
                     </div>
                 </div>
             </div>
-            <div class="p-4 bg-gray-950 border-t border-gray-700 text-center text-xs text-gray-500">KANWIL BPN PROVINSI GORONTALO © 2026</div>
+
+            <div class="p-3.5 bg-gray-950 border-t border-gray-800/80 text-center text-[11px] text-gray-500 font-medium">
+                KANWIL BPN PROVINSI GORONTALO © 2026
+            </div>
         </aside>
 
-        <main id="map" class="flex-1 z-10 w-full"></main>
+        <!-- Map Container -->
+        <main id="map" class="flex-1 z-10 w-full bg-gray-950"></main>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -77,7 +127,6 @@
     <script src="https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js"></script>
 
     <script>
-        // Konfigurasi layer dengan daftar alias field (fields) untuk mengantisipasi perbedaan penamaan kolom KML/Shapefile
         const layersConfig = [
             { id: 'kesesuaian_rtrw', label: 'Kesesuaian Rencana Pola Ruang', fields: ['KSPOLA', 'KESESUAIAN', 'RTRW', 'POLA_RUANG'] },
             { id: 'ketersediaan_tanah', label: 'Ketersediaan Tanah', fields: ['KETERSEDIAAN', 'KETERSEDIAA', 'KET_TANAH', 'TERSEDIA', 'KETERSEDIAAN_TANAH'] },
@@ -91,13 +140,13 @@
         L.control.zoom({ position: 'topright' }).addTo(map);
 
         const basemaps = {
-            Satelit: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }),
-            PetaJalan: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { attribution: 'OSM' })
+            "Satelit Esri": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }),
+            "Peta Jalan OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', { attribution: 'OSM' })
         };
-        basemaps.Satelit.addTo(map);
+        basemaps["Satelit Esri"].addTo(map);
         L.control.layers(basemaps, null, { position: 'bottomright' }).addTo(map);
 
-        // --- MOBILE MENU TOGGLE ---
+        // --- Mobile Sidebar Toggle Logic ---
         const menuBtn = document.getElementById('menuBtn');
         const sidebar = document.getElementById('sidebar');
         const menuIcon = document.getElementById('menuIcon');
@@ -129,35 +178,38 @@
         const activeLayers = {};
         const layerLegends = {};
 
+        // Render Layer Controls dengan Toggle Switch Modern
         const controlContainer = document.getElementById('layerControls');
         layersConfig.forEach(cfg => {
             controlContainer.innerHTML += `
-                <div class="flex items-center justify-between p-3 bg-gray-700/40 hover:bg-gray-700 border border-gray-700/60 rounded-xl transition">
-                    <label for="${cfg.id}" class="text-sm font-medium flex-1 cursor-pointer">${cfg.label}</label>
-                    <div class="flex items-center gap-3">
-                        <a href="data/${cfg.id}.kmz" download="${cfg.id}.kmz" title="Download KMZ" class="text-gray-400 hover:text-emerald-400 transition-colors z-10">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <div id="card-${cfg.id}" class="flex items-center justify-between p-3 bg-gray-800/40 hover:bg-gray-800/80 border border-gray-800 hover:border-gray-700 rounded-2xl transition-all duration-200">
+                    <label for="${cfg.id}" class="text-xs font-semibold text-gray-200 flex-1 cursor-pointer pr-2">${cfg.label}</label>
+                    <div class="flex items-center gap-2.5">
+                        <a href="data/${cfg.id}.kmz" download="${cfg.id}.kmz" title="Unduh KMZ" class="p-1.5 text-gray-400 hover:text-emerald-400 hover:bg-gray-700/50 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         </a>
-                        <input type="checkbox" id="${cfg.id}" class="w-4 h-4 text-emerald-500 rounded bg-gray-600 border-gray-500 cursor-pointer">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="${cfg.id}" class="sr-only peer">
+                            <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
                     </div>
                 </div>
             `;
         });
 
         function kmlColorToCss(kmlColor) {
-            if (!kmlColor || kmlColor.length !== 8) return { color: '', opacity: 0.7 };
+            if (!kmlColor || kmlColor.length !== 8) return { color: '', opacity: 0.75 };
             let aHex = kmlColor.substring(0, 2);
             let bHex = kmlColor.substring(2, 4);
             let gHex = kmlColor.substring(4, 6);
             let rHex = kmlColor.substring(6, 8);
             
             let alpha = parseInt(aHex, 16) / 255;
-            if (isNaN(alpha)) alpha = 0.7;
+            if (isNaN(alpha)) alpha = 0.75;
             let hexColor = `#${rHex}${gHex}${bHex}`;
             return { color: hexColor, opacity: alpha };
         }
 
-        // Ekstraksi atribut dari HTML Description jika KML tidak menyimpan properti GeoJSON secara langsung
         function extractAttributesFromDescription(htmlStr) {
             const props = {};
             if (!htmlStr || typeof htmlStr !== 'string') return props;
@@ -175,11 +227,8 @@
             return props;
         }
 
-        // Fungsi pembantu mengekstrak nilai atribut utama berdasarkan daftar nama field target
         function getFeatureAttributeValue(props, targetFields) {
             if (!props) return "";
-            
-            // 1. Cari berdasarkan daftar field target (Case-Insensitive)
             for (let target of targetFields) {
                 for (let k in props) {
                     if (k.toLowerCase() === target.toLowerCase() && props[k] !== undefined && props[k] !== null && String(props[k]).trim() !== "") {
@@ -187,8 +236,6 @@
                     }
                 }
             }
-
-            // 2. Jika tidak ketemu, cari di properti 'description' jika bertipe HTML
             if (props.description) {
                 const parsedProps = extractAttributesFromDescription(props.description);
                 for (let target of targetFields) {
@@ -199,22 +246,17 @@
                     }
                 }
             }
-
-            // 3. Fallback: Cari field lain yang bernilai non-sistem (mengabaikan metadata default KML/GIS)
             const ignoredKeys = ['styleurl', 'stylehash', 'id', 'fill', 'stroke', 'visibility', 'tessellate', 'extrude', 'fid', 'objectid', 'shape_length', 'shape_area', 'description', 'name'];
             for (let k in props) {
                 if (!ignoredKeys.includes(k.toLowerCase()) && props[k] !== undefined && props[k] !== null) {
                     let valStr = String(props[k]).trim();
-                    if (valStr !== "" && valStr !== "-") {
-                        return valStr;
-                    }
+                    if (valStr !== "" && valStr !== "-") return valStr;
                 }
             }
-
             return "";
         }
 
-        const paletWarna = ['#3cb44b', '#e6194b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'];
+        const paletWarna = ['#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#eab308', '#06b6d4', '#d946ef'];
 
         async function initLayer(cfg) {
             try {
@@ -235,7 +277,7 @@
                     let polyStyle = s.getElementsByTagName('PolyStyle')[0];
                     let lineStyle = s.getElementsByTagName('LineStyle')[0];
                     
-                    let fillStyle = { color: '', opacity: 0.7 };
+                    let fillStyle = { color: '', opacity: 0.75 };
                     let strokeStyle = { color: '#ffffff', opacity: 1 };
                     let weight = 1;
 
@@ -267,28 +309,30 @@
                                 return styleMap[cleanId];
                             }
                         }
-                        return { fillColor: '#3388ff', fillOpacity: 0.7, color: '#ffffff', weight: 1 };
+                        return { fillColor: '#10b981', fillOpacity: 0.75, color: '#ffffff', weight: 1 };
                     },
                     onEachFeature: function(feature, layer) {
                         let p = feature.properties;
-                        let content = `<div class='text-gray-900 font-sans p-1'><h3 class='font-bold border-b pb-1 mb-2 text-emerald-700 text-sm'>ℹ️ ${cfg.label}</h3><table class='text-xs w-full'>`;
+                        let content = `
+                            <div class='p-1 min-w-[200px]'>
+                                <div class='flex items-center gap-2 border-b border-gray-700 pb-2 mb-2'>
+                                    <div class='w-2 h-2 rounded-full bg-emerald-400'></div>
+                                    <h3 class='font-bold text-emerald-400 text-xs uppercase tracking-wide'>${cfg.label}</h3>
+                                </div>
+                                <table class='text-xs w-full border-collapse'>`;
                         
-                        // Tampilkan atribut standar
                         for (let k in p) {
                             if (!['styleUrl', 'styleHash', 'id', 'fill', 'stroke', 'visibility', 'tessellate', 'extrude'].includes(k)) {
-                                if (k === 'description' && typeof p[k] === 'string' && p[k].includes('<table')) {
-                                    continue; // Lewati deskripsi tabel mentah agar tidak merusak tampilan popup
-                                }
+                                if (k === 'description' && typeof p[k] === 'string' && p[k].includes('<table')) continue;
                                 let val = p[k] || "-";
-                                content += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${k}</td><td class='text-gray-800'>: ${val}</td></tr>`;
+                                content += `<tr><td class='font-semibold py-1 pr-3 text-gray-400 uppercase text-[10px]'>${k}</td><td class='text-gray-200 py-1 font-medium'>: ${val}</td></tr>`;
                             }
                         }
                         
-                        // Jika ada tabel HTML di description, parsing dan tambahkan ke popup
                         if (p.description && typeof p.description === 'string' && p.description.includes('<table')) {
                             const descProps = extractAttributesFromDescription(p.description);
                             for (let dk in descProps) {
-                                content += `<tr><td class='font-semibold pr-3 py-0.5 text-gray-600 uppercase'>${dk}</td><td class='text-gray-800'>: ${descProps[dk]}</td></tr>`;
+                                content += `<tr><td class='font-semibold py-1 pr-3 text-gray-400 uppercase text-[10px]'>${dk}</td><td class='text-gray-200 py-1 font-medium'>: ${descProps[dk]}</td></tr>`;
                             }
                         }
 
@@ -303,10 +347,7 @@
                 geoLayer.eachLayer(function(subLayer) {
                     let p = subLayer.feature.properties || {};
                     let val = getFeatureAttributeValue(p, cfg.fields);
-
-                    if (!val) {
-                        val = "Lainnya / Tidak Ada Data";
-                    }
+                    if (!val) val = "Lainnya / Tidak Ada Data";
 
                     let sUrl = p.styleUrl;
                     let appliedColor = '';
@@ -315,7 +356,6 @@
                         appliedColor = styleMap[sUrl.replace('#', '')].fillColor;
                     }
 
-                    // Penentuan warna kategoris konsisten
                     if (!appliedColor) {
                         if (!legendItems[val]) {
                             legendItems[val] = paletWarna[colorIndex % paletWarna.length];
@@ -329,12 +369,7 @@
                     }
 
                     if (typeof subLayer.setStyle === 'function') {
-                        subLayer.setStyle({ 
-                            fillColor: appliedColor, 
-                            fillOpacity: 0.75, 
-                            color: '#ffffff', 
-                            weight: 1 
-                        });
+                        subLayer.setStyle({ fillColor: appliedColor, fillOpacity: 0.75, color: '#ffffff', weight: 1 });
                     }
                 });
 
@@ -342,10 +377,12 @@
                 loadedLayers[cfg.id] = geoLayer;
 
                 document.getElementById(cfg.id).addEventListener('change', function(e) {
+                    const card = document.getElementById(`card-${cfg.id}`);
                     if (e.target.checked) {
                         geoLayer.addTo(map);
                         try { map.fitBounds(geoLayer.getBounds()); } catch(err){}
                         activeLayers[cfg.id] = true;
+                        if (card) card.classList.add('border-emerald-500/50', 'bg-emerald-950/20');
                         if (window.innerWidth < 768) {
                             sidebar.classList.add('-translate-x-full');
                             menuIcon.classList.remove('hidden');
@@ -354,6 +391,7 @@
                     } else {
                         map.removeLayer(geoLayer);
                         activeLayers[cfg.id] = false;
+                        if (card) card.classList.remove('border-emerald-500/50', 'bg-emerald-950/20');
                     }
                     renderLegendBox();
                 });
@@ -371,13 +409,13 @@
             layersConfig.forEach(cfg => {
                 if (activeLayers[cfg.id] && layerLegends[cfg.id]) {
                     activeCount++;
-                    let html = `<div class='mb-3'><p class='font-bold text-emerald-400 border-b border-gray-700 pb-0.5 mb-1.5'>${cfg.label}</p><div class='space-y-1.5'>`;
+                    let html = `<div class='mb-3 last:mb-0'><p class='font-bold text-emerald-400 border-b border-gray-800 pb-1 mb-2 text-[11px] uppercase tracking-wide flex items-center gap-1.5'><span class='w-1.5 h-1.5 rounded-full bg-emerald-400'></span>${cfg.label}</p><div class='space-y-1.5 pl-1'>`;
                     
                     for (let val in layerLegends[cfg.id]) {
                         let col = layerLegends[cfg.id][val];
-                        html += `<div class='flex items-center gap-2'>
-                                    <span class='w-3.5 h-3.5 rounded-sm border border-white/30 inline-block shadow-sm' style='background-color:${col}'></span>
-                                    <span class='capitalize leading-tight'>${val}</span>
+                        html += `<div class='flex items-center gap-2.5'>
+                                    <span class='w-3 h-3 rounded-md border border-white/20 inline-block shadow-sm flex-shrink-0' style='background-color:${col}'></span>
+                                    <span class='capitalize text-gray-300 leading-tight text-[11px]'>${val}</span>
                                  </div>`;
                     }
                     html += `</div></div>`;
@@ -386,7 +424,7 @@
             });
 
             if (activeCount === 0) {
-                container.innerHTML = '<p class="text-gray-500 italic">Aktifkan layer untuk melihat legenda.</p>';
+                container.innerHTML = '<p class="text-gray-500 italic text-center py-2 text-[11px]">Aktifkan salah satu layer untuk melihat legenda atribut.</p>';
             }
         }
 
